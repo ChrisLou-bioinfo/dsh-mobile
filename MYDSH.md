@@ -94,6 +94,43 @@ xcrun devicectl device process launch --device 00008130-000C6D0A3083401C com.jia
 Android SDK Platform 36、Metal Toolchain（`xcodebuild -downloadComponent MetalToolchain`）。
 Xcode 若升级大版本，Metal Toolchain 需要重新下载。
 
+
+## TestFlight 分发
+
+管线脚本：`scripts/make_testflight.sh`（归档 → 导出 IPA → `altool` 上传）。
+凭据复用本机已有的 ASC API Key（App Manager）：
+
+| 项 | 值 |
+|---|---|
+| Key ID | `662DG54QFM` |
+| Issuer | `83c32535-8b3a-405e-a631-e80968b96c25` |
+| 私钥 | `~/.appstoreconnect/private_keys/AuthKey_662DG54QFM.p8` |
+| ASC App | Mydsh `6824755121`（`com.jiachenglou.dshmobile`） |
+
+```bash
+./scripts/make_testflight.sh --check-app     # 预检 App 记录存在
+./scripts/make_testflight.sh                 # 归档+导出+上传
+./scripts/make_testflight.sh --no-upload     # 只产出 build/export/Mydsh.ipa
+```
+
+已上传构建：**1.0.0 (1)**，Delivery UUID `2c9b9349-a21e-4820-a871-d5c6bb8b8049`，
+处理状态 VALID；已创建 Test Information、What to Test，并提交 Beta 审核。
+
+已知坑（来自 LocalMind 项目 2026-10-05 的实测记录，脚本已规避）：
+
+- ASC API 的 JWT 必须带 `aud: "appstoreconnect-v1"`（文档未写，服务端强制）。
+- **本机时钟比 Apple 快约 3 分钟**，JWT 的 `iat` 必须回拨（脚本用 -600s）。
+- 用 `curl` 调 ASC API 时 URL 里含 `filter[app]` 这类方括号，**必须加 `-g`**（curl 会当 glob 解析，导致空响应）。
+- **App 记录不能经 API 创建（403）**，首次必须在 ASC 网页建。
+- 上传走 `xcrun altool --upload-app --apiKey/--apiIssuer`；`xcodebuild -exportArchive` 只负责产出 IPA。
+- 每次上传 build 号必须递增，否则 ITMS-4238。
+
+### 内部测试（自己用，免审核）
+
+1. App Store Connect → TestFlight → **内部测试** → 添加测试员（选自己，需 Admin/App Manager 角色）。
+2. iPhone 装 TestFlight，用同一 Apple ID 登录，接受邀请后安装 Mydsh。
+3. 外部测试（分享给别人）需要 Beta App Review；本次已提交，等审核通过即可用公开链接。
+
 ## 连接 DSH
 
 1. 在运行 DSH 的机器上安装并启用 `dsh-plugin-mobile-gateway@0.10.3+`。

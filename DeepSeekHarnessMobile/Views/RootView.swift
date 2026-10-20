@@ -13,7 +13,7 @@ struct RootView: View {
             .equatable()
             // 直接观察当前 AppStore，避免外层主机容器漏掉外观设置更新。
             .preferredColorScheme(store.interfaceStyle.colorScheme)
-            .alert("Whaleness", isPresented: Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })) {
+            .alert("Mydsh", isPresented: Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })) {
                 Button(String(localized: "好"), role: .cancel) { store.lastError = nil }
             } message: { Text(store.lastError ?? "") }
             .onChange(of: scenePhase) { _, phase in

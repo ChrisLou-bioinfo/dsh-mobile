@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Whaleness</string>
+	<string>Mydsh</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Whaleness</string>
+	<string>Mydsh</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -39,7 +39,7 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>允许 Whaleness 扫描 DeepSeek Harness WebUI 生成的设备配对二维码。</string>
+	<string>允许 Mydsh 扫描 DeepSeek Harness WebUI 生成的设备配对二维码。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>连接局域网中的 DeepSeek Harness Mobile Gateway。</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

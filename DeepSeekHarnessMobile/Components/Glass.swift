@@ -93,18 +93,22 @@ struct HarnessMark: View {
     var width: CGFloat = 216
 
     var body: some View {
-        HStack(spacing: 4) {
-            WhalenessOrcaIcon(size: 29)
-                .foregroundStyle(onDarkBackground ? Color.white : Color.black)
-            Image("WhalenessHarnessWordmark")
+        HStack(spacing: 8) {
+            Image("MydshLaunchMark")
+                .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .colorInvertIfNeeded(onDarkBackground)
-                .frame(maxWidth: .infinity, maxHeight: 29, alignment: .leading)
+                .foregroundStyle(onDarkBackground ? Color.white : Color.black)
+                .frame(width: 26, height: 26)
+            Text("Mydsh")
+                .font(.system(size: 23, weight: .semibold, design: .rounded))
+                .tracking(0.2)
+                .foregroundStyle(onDarkBackground ? Color.white : Color.black)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: width, alignment: .leading)
         .frame(height: 29)
-        .accessibilityLabel("Whaleness Harness")
+        .accessibilityLabel("Mydsh")
     }
 }
 

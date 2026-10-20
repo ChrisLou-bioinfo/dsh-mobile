@@ -361,6 +361,7 @@ struct ConversationView: View {
     @State private var pendingImages: [GatewayOutgoingImage] = []
     @State private var isImportingImages = false
     @State private var showsContextUsage = false
+    @State private var showsModelPicker = false
     @State private var showsSessionStats = false
     @State private var showsSessionStatsPopover = false
     @State private var tasksExpanded = false
@@ -1060,128 +1061,9 @@ struct ConversationView: View {
                     }.appFont(.caption)
                 }
             }
-            HStack(spacing: 7) {
-                PhotosPicker(
-                    selection: $selectedPhotoItems,
-                    maxSelectionCount: max(1, 20 - pendingImages.count),
-                    matching: .images
-                ) {
-                    Group {
-                        if isImportingImages {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "photo.on.rectangle.angled")
-                                .appFont(.system(size: 16, weight: .semibold))
-                        }
-                    }
-                    .frame(width: 32, height: 32)
-                    .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(!store.supportsImages || pendingImages.count >= 20 || isImportingImages)
-                .accessibilityLabel(store.supportsImages ? String(localized: "添加图片") : String(localized: "当前网关不支持图片"))
+            composerButtonsRow
 
-                permissionControl
 
-                Spacer(minLength: 2)
-
-                modelControl
-
-                Button { showsContextUsage = true } label: {
-                    if contextIsLoading && store.selectedContextSnapshot == nil {
-                        ProgressView().controlSize(.small).frame(width: 26, height: 26)
-                    } else {
-                        ContextUsageRing(progress: contextProgress)
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(store.selectedContextSnapshot == nil)
-                .accessibilityLabel(String(localized: "a11y.context.percent", defaultValue: "上下文已用 \(Int(contextProgress * 100))%"))
-                .popover(isPresented: $showsContextUsage, arrowEdge: .bottom) {
-                    ContextUsagePopover(snapshot: store.selectedContextSnapshot)
-                        .presentationCompactAdaptation(.popover)
-                }
-
-                Button {
-                    if showsSessionStopButton {
-                        store.cancelSelectedSession()
-                        return
-                    }
-                    if !composerHasContent {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        let enteringVoice = !voiceState.voiceMode
-                        composerIsFocused = !enteringVoice
-                        store.voiceInput.setVoiceMode(enteringVoice)
-                        return
-                    }
-                    let content = store.composedSlashMessage(arguments: draft)
-                    let images = pendingImages
-                    guard store.send(content, images: images) else { return }
-                    if store.messageSubmissionPending {
-                        submittedQueueDraft = draft
-                        submittedQueueImages = images
-                        submittedQueueSessionID = store.selectedSessionId
-                        return
-                    }
-                    if store.commandSubmissionPending {
-                        composerIsFocused = false
-                        return
-                    }
-                    draft = ""
-                    store.clearActiveSlashCommand()
-                    pendingImages = []
-                    selectedPhotoItems = []
-                    composerIsFocused = false
-                    // Sending establishes a new tail-following intent before
-                    // the gateway echoes the user event. The subsequent user
-                    // bubble and first reasoning block can therefore grow
-                    // above the composer without ever being hidden behind it.
-                    viewportScrollToBottomToken &+= 1
-                } label: {
-                    Group {
-                        if showsSessionStopButton {
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(.white)
-                                .frame(width: 14, height: 14)
-                        } else {
-                            Image(systemName: composerHasContent ? "arrow.up" : (voiceState.voiceMode ? "keyboard" : "waveform"))
-                                .appFont(.system(size: 17, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .frame(width: 42, height: 42)
-                    .background(DSHColor.ocean, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(
-                    showsSessionStopButton
-                        ? store.isCancellingSelectedSession
-                        : (composerHasContent && (store.sessionAgentPreset.blocksSending || store.waitingForNewSession || isImportingImages || store.commandSubmissionPending || store.messageSubmissionPending))
-                )
-                .opacity(
-                    showsSessionStopButton
-                        ? (store.isCancellingSelectedSession ? 0.66 : 1)
-                        : 1
-                )
-                .accessibilityLabel(
-                    showsSessionStopButton
-                        ? String(localized: "a11y.stop-generation", defaultValue: "停止生成")
-                        : (composerHasContent ? String(localized: "a11y.send-message", defaultValue: "发送")
-                           : (voiceState.voiceMode ? String(localized: "切换到文字输入") : String(localized: "切换到语音输入")))
-                )
-                .accessibilityIdentifier("composer-action")
-            }
-            .overlay(alignment: .top) {
-                if voiceState.voiceMode {
-                    // 复用原有 12pt 间隔绘制分割线，不增加输入卡片高度。
-                    Rectangle()
-                        .fill(Color.primary.opacity(0.08))
-                        .frame(height: 0.5)
-                        .offset(y: -6)
-                        .accessibilityHidden(true)
-                        .allowsHitTesting(false)
-                }
-            }
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -1231,6 +1113,152 @@ struct ConversationView: View {
             composerIsFocused = false
         }
     }
+
+    /// Composer action row.
+    ///
+    /// Every child is boxed in `AnyView`. The row otherwise compiles into one
+    /// very deeply nested generic type (`HStack<TupleView<(PhotosPicker<...>,
+    /// ...)>>`), and on Swift 6.4 / iOS 27 instantiating that concrete type
+    /// recursed through `_checkGenericRequirements` until the stack guard hit.
+    /// Boxing keeps each child's type out of the row's mangled name.
+    @ViewBuilder
+    private var composerButtonsRow: some View {
+        HStack(spacing: 7) {
+            AnyView(composerPhotoButton)
+
+            AnyView(permissionControl)
+
+            Spacer(minLength: 2)
+
+            AnyView(modelControl)
+
+            AnyView(composerContextButton)
+
+            AnyView(composerActionButton)
+        }
+        .overlay(alignment: .top) {
+            if voiceState.voiceMode {
+                // 复用原有 12pt 间隔绘制分割线，不增加输入卡片高度。
+                Rectangle()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 0.5)
+                    .offset(y: -6)
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private var composerPhotoButton: some View {
+        PhotosPicker(
+            selection: $selectedPhotoItems,
+            maxSelectionCount: max(1, 20 - pendingImages.count),
+            matching: .images
+        ) {
+            Group {
+                if isImportingImages {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .appFont(.system(size: 16, weight: .semibold))
+                }
+            }
+            .frame(width: 32, height: 32)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!store.supportsImages || pendingImages.count >= 20 || isImportingImages)
+        .accessibilityLabel(store.supportsImages ? String(localized: "添加图片") : String(localized: "当前网关不支持图片"))
+    }
+
+    private var composerContextButton: some View {
+        Button { showsContextUsage = true } label: {
+            if contextIsLoading && store.selectedContextSnapshot == nil {
+                ProgressView().controlSize(.small).frame(width: 26, height: 26)
+            } else {
+                ContextUsageRing(progress: contextProgress)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(store.selectedContextSnapshot == nil)
+        .accessibilityLabel(String(localized: "a11y.context.percent", defaultValue: "上下文已用 \(Int(contextProgress * 100))%"))
+        .popover(isPresented: $showsContextUsage, arrowEdge: .bottom) {
+            ContextUsagePopover(snapshot: store.selectedContextSnapshot)
+                .presentationCompactAdaptation(.popover)
+        }
+    }
+
+    private var composerActionButton: some View {
+        Button {
+            if showsSessionStopButton {
+                store.cancelSelectedSession()
+                return
+            }
+            if !composerHasContent {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                let enteringVoice = !voiceState.voiceMode
+                composerIsFocused = !enteringVoice
+                store.voiceInput.setVoiceMode(enteringVoice)
+                return
+            }
+            let content = store.composedSlashMessage(arguments: draft)
+            let images = pendingImages
+            guard store.send(content, images: images) else { return }
+            if store.messageSubmissionPending {
+                submittedQueueDraft = draft
+                submittedQueueImages = images
+                submittedQueueSessionID = store.selectedSessionId
+                return
+            }
+            if store.commandSubmissionPending {
+                composerIsFocused = false
+                return
+            }
+            draft = ""
+            store.clearActiveSlashCommand()
+            pendingImages = []
+            selectedPhotoItems = []
+            composerIsFocused = false
+            // Sending establishes a new tail-following intent before
+            // the gateway echoes the user event. The subsequent user
+            // bubble and first reasoning block can therefore grow
+            // above the composer without ever being hidden behind it.
+            viewportScrollToBottomToken &+= 1
+        } label: {
+            Group {
+                if showsSessionStopButton {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(.white)
+                        .frame(width: 14, height: 14)
+                } else {
+                    Image(systemName: composerHasContent ? "arrow.up" : (voiceState.voiceMode ? "keyboard" : "waveform"))
+                        .appFont(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 42, height: 42)
+            .background(DSHColor.ocean, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(
+            showsSessionStopButton
+                ? store.isCancellingSelectedSession
+                : (composerHasContent && (store.sessionAgentPreset.blocksSending || store.waitingForNewSession || isImportingImages || store.commandSubmissionPending || store.messageSubmissionPending))
+        )
+        .opacity(
+            showsSessionStopButton
+                ? (store.isCancellingSelectedSession ? 0.66 : 1)
+                : 1
+        )
+        .accessibilityLabel(
+            showsSessionStopButton
+                ? String(localized: "a11y.stop-generation", defaultValue: "停止生成")
+                : (composerHasContent ? String(localized: "a11y.send-message", defaultValue: "发送")
+                   : (voiceState.voiceMode ? String(localized: "切换到文字输入") : String(localized: "切换到语音输入")))
+        )
+        .accessibilityIdentifier("composer-action")
+    }
+
 
     @ViewBuilder
     private var slashCommandMenus: some View {
@@ -1763,7 +1791,63 @@ struct ConversationView: View {
                 )
             )
         } else {
-            modelMenu
+            modelButton
+        }
+    }
+
+    /// Composer model control. Deliberately not a `Menu`: presenting a `Menu`
+    /// with nested `Section`/`ForEach` content from inside the composer trips a
+    /// Swift 6.4 / iOS 27 runtime crash while instantiating the deeply nested
+    /// view type (`__swift_instantiateConcreteTypeFromMangledNameV2` recursion).
+    /// A plain button that presents a sheet keeps the composer's type shallow.
+    private var modelButton: some View {
+        Button { showsModelPicker = true } label: {
+            HStack(spacing: 5) {
+                if modelIsLoading {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Text(currentModelTitle)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .allowsTightening(true)
+                        .layoutPriority(1)
+                    if let effort = currentEffortTitle {
+                        Text(effort)
+                            .appFont(.caption2.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .layoutPriority(2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(DSHColor.purple.opacity(0.16), in: Capsule())
+                    }
+                }
+                Image(systemName: "chevron.up.chevron.down")
+                    .appFont(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .appFont(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(modelGroups.isEmpty || store.selectedModelCatalog?.routable == false)
+        .sheet(isPresented: $showsModelPicker) {
+            ModelPickerSheet(
+                groups: modelGroups,
+                current: currentModelSelection,
+                efforts: currentEfforts,
+                onSelectModel: { group, model in
+                    select(group: group, model: model)
+                    showsModelPicker = false
+                },
+                onSelectEffort: { effort in
+                    select(effort: effort)
+                    showsModelPicker = false
+                }
+            )
         }
     }
 
@@ -1798,78 +1882,6 @@ struct ConversationView: View {
             .contentShape(Rectangle())
         }
         .disabled(permissionOptions.isEmpty)
-    }
-
-    private var modelMenu: some View {
-        Menu {
-            if modelGroups.isEmpty {
-                Text("正在读取模型…")
-            } else {
-                // Keep model selection in one native menu. Presenting a
-                // submenu before the outer Menu finishes its animation makes
-                // UIKit resolve the child against a transient anchor, which
-                // intermittently offsets and clips it near the composer.
-                ForEach(modelGroups) { group in
-                    Section(group.name) {
-                        ForEach(group.models) { model in
-                            Button {
-                                select(group: group, model: model)
-                            } label: {
-                                Label(
-                                    model.name,
-                                    systemImage: isCurrent(group: group, model: model) ? "checkmark" : "circle"
-                                )
-                            }
-                        }
-                    }
-                }
-                if !currentEfforts.isEmpty {
-                    Section("推理等级") {
-                        ForEach(currentEfforts) { effort in
-                            Button {
-                                select(effort: effort)
-                            } label: {
-                                Label(
-                                    effort.name,
-                                    systemImage: effort.id == currentModelSelection?.reasoningEffort ? "checkmark" : "circle"
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 5) {
-                if modelIsLoading {
-                    ProgressView().controlSize(.mini)
-                } else {
-                    Text(currentModelTitle)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .allowsTightening(true)
-                        .layoutPriority(1)
-                    if let effort = currentEffortTitle {
-                        Text(effort)
-                            .appFont(.caption2.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                            .layoutPriority(2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(DSHColor.purple.opacity(0.16), in: Capsule())
-                    }
-                }
-                Image(systemName: "chevron.up.chevron.down")
-                    .appFont(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .appFont(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .contentShape(Rectangle())
-        }
-        .disabled(modelGroups.isEmpty || store.selectedModelCatalog?.routable == false)
     }
 
     private var permissionOptions: [GatewayPermissionOption] { store.selectedPermissions?.options ?? [] }
@@ -4623,5 +4635,78 @@ enum JSONSyntaxHighlighter {
         var result = AttributedString(value)
         result.foregroundColor = color
         return result
+    }
+}
+
+/// Model picker presented from the composer as a sheet.
+///
+/// Kept as a standalone `View` (and deliberately not a `Menu`) so the composer's
+/// opaque view type stays shallow: on Swift 6.4 / iOS 27 a nested `Menu` in the
+/// composer crashed the Swift runtime while instantiating the composer's deeply
+/// nested type metadata.
+private struct ModelPickerSheet: View {
+    let groups: [GatewayModelGroup]
+    let current: GatewayModelSelection?
+    let efforts: [GatewayReasoningEffort]
+    let onSelectModel: (GatewayModelGroup, GatewayModelItem) -> Void
+    let onSelectEffort: (GatewayReasoningEffort) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if groups.isEmpty {
+                    Text("正在读取模型…")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(groups) { group in
+                        Section(group.name) {
+                            ForEach(group.models) { model in
+                                Button {
+                                    onSelectModel(group, model)
+                                } label: {
+                                    row(title: model.name,
+                                        selected: current?.provider == group.id && current?.model == model.id)
+                                }
+                            }
+                        }
+                    }
+                    if !efforts.isEmpty {
+                        Section("推理等级") {
+                            ForEach(efforts) { effort in
+                                Button {
+                                    onSelectEffort(effort)
+                                } label: {
+                                    row(title: effort.name,
+                                        selected: current?.reasoningEffort == effort.id)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("选择模型")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func row(title: String, selected: Bool) -> some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+            if selected {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(.tint)
+            }
+        }
+        .contentShape(Rectangle())
     }
 }

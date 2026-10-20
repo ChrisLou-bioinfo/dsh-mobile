@@ -792,13 +792,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access wasn’t granted. Allow Whaleness to use the camera in system settings, then try again."
+            "value" : "Camera access wasn’t granted. Allow Mydsh to use the camera in system settings, then try again."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未获得相机权限。请在系统设置中允许 Whaleness 使用相机后重试。"
+            "value" : "未获得相机权限。请在系统设置中允许 Mydsh 使用相机后重试。"
           }
         }
       }
@@ -809,13 +809,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access is unavailable. Allow Whaleness to use the camera in system settings, then try again."
+            "value" : "Camera access is unavailable. Allow Mydsh to use the camera in system settings, then try again."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "相机权限不可用。请在系统设置中允许 Whaleness 使用相机后重试。"
+            "value" : "相机权限不可用。请在系统设置中允许 Mydsh 使用相机后重试。"
           }
         }
       }
@@ -3350,36 +3350,36 @@
         }
       }
     },
-    "Whaleness" : {
+    "Mydsh" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whaleness"
+            "value" : "Mydsh"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whaleness"
+            "value" : "Mydsh"
           }
         }
       }
     },
-    "Whaleness Harness" : {
+    "Mydsh Harness" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whaleness Harness"
+            "value" : "Mydsh Harness"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Whaleness Harness"
+            "value" : "Mydsh Harness"
           }
         }
       }

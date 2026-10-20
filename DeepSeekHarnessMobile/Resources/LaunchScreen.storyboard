@@ -15,18 +15,17 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="DshOrcaMark" translatesAutoresizingMaskIntoConstraints="NO" id="launch-whale">
-                                <rect key="frame" x="146.5" y="376" width="100" height="100"/>
-                                <color key="tintColor" systemColor="labelColor"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="MydshLaunchMark" translatesAutoresizingMaskIntoConstraints="NO" id="launch-whale">
+                                <rect key="frame" x="138.5" y="368" width="116" height="116"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="launch-safe-area"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" red="0.024" green="0.063" blue="0.118" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="launch-whale" firstAttribute="centerX" secondItem="launch-root" secondAttribute="centerX" id="launch-center-x"/>
                             <constraint firstItem="launch-whale" firstAttribute="centerY" secondItem="launch-root" secondAttribute="centerY" id="launch-center-y"/>
-                            <constraint firstItem="launch-whale" firstAttribute="width" constant="100" id="launch-width"/>
-                            <constraint firstItem="launch-whale" firstAttribute="height" constant="100" id="launch-height"/>
+                            <constraint firstItem="launch-whale" firstAttribute="width" constant="116" id="launch-width"/>
+                            <constraint firstItem="launch-whale" firstAttribute="height" constant="116" id="launch-height"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -36,12 +35,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="DshOrcaMark" width="100" height="100"/>
-        <systemColor name="labelColor">
-            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
+        <image name="MydshLaunchMark" width="116" height="116"/>
     </resources>
 </document>

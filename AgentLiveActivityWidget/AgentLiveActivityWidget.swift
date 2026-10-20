@@ -161,7 +161,7 @@ private struct AgentDynamicIslandBrand: View {
     var body: some View {
         HStack(spacing: 6) {
             AgentBrandMark(compact: false)
-            Text("Whaleness")
+            Text("Mydsh")
                 .font(.system(size: 11, weight: .semibold))
                 .lineLimit(1)
         }
@@ -281,7 +281,7 @@ private struct AgentDynamicIslandExpandedContent: View {
     /// 简单状态使用底部信息行占满展开卡片的安全区域。它既补足运行、允许、
     /// 拒绝等状态下的下半部空白，也把所有内容限制在底部圆角开始收窄之前。
     private var compactFooter: some View {
-        Text(state.sourceLabel?.isEmpty == false ? state.sourceLabel! : "Whaleness")
+        Text(state.sourceLabel?.isEmpty == false ? state.sourceLabel! : "Mydsh")
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .font(.system(size: 10))
@@ -452,7 +452,7 @@ private struct AgentActivityCard: View {
 
     private var footer: some View {
         HStack(spacing: 7) {
-            Text(state.sourceLabel?.isEmpty == false ? state.sourceLabel! : "Whaleness")
+            Text(state.sourceLabel?.isEmpty == false ? state.sourceLabel! : "Mydsh")
                 .lineLimit(1)
             Spacer(minLength: 12)
             Link(destination: AgentActivityLink.session(context)) {
@@ -772,7 +772,7 @@ private func previewState(
         status: status,
         detail: detail,
         secondaryDetail: secondaryDetail,
-        sourceLabel: "Mac Studio · Whaleness",
+        sourceLabel: "Mac Studio · Mydsh",
         command: command,
         rpcID: command == nil ? nil : "preview-rpc",
         approvalID: command == nil ? nil : "preview-approval",

@@ -1381,12 +1381,12 @@ private final class GatewayScannerController: UIViewController, AVCaptureMetadat
                     if granted {
                         self.configureAndRun()
                     } else {
-                        self.finish(with: String(localized: "camera.denied", defaultValue: "未获得相机权限。请在系统设置中允许 Whaleness 使用相机后重试。"))
+                        self.finish(with: String(localized: "camera.denied", defaultValue: "未获得相机权限。请在系统设置中允许 Mydsh 使用相机后重试。"))
                     }
                 }
             }
         case .denied, .restricted:
-            finish(with: String(localized: "camera.restricted", defaultValue: "相机权限不可用。请在系统设置中允许 Whaleness 使用相机后重试。"))
+            finish(with: String(localized: "camera.restricted", defaultValue: "相机权限不可用。请在系统设置中允许 Mydsh 使用相机后重试。"))
         @unknown default:
             finish(with: String(localized: "无法确定当前相机权限状态。"))
         }

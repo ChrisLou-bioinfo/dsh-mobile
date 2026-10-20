@@ -769,16 +769,17 @@
 		};
 		6CEBD593F2F351E87AE7198C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F2A000000000000000000001 /* config/Debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				DEVELOPMENT_TEAM = T58RY5HUA7;
+				DEVELOPMENT_TEAM = "$(LOCAL_DEVELOPMENT_TEAM)";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/shared/build/bin/iosArm64/releaseFramework";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*][arch=arm64]" = "$(SRCROOT)/shared/build/bin/iosSimulatorArm64/releaseFramework";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*][arch=x86_64]" = "$(SRCROOT)/shared/build/bin/iosX64/releaseFramework";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lichaofan.dshmobile.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LOCAL_BUNDLE_IDENTIFIER).tests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.10;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DshMobile.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DshMobile";
@@ -908,7 +909,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "$(LOCAL_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AgentLiveActivityWidget/Info.plist;
@@ -918,7 +919,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.7;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(LOCAL_BUNDLE_IDENTIFIER).AgentLiveActivityWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -931,12 +932,13 @@
 		};
 		F1A000000000000000000051 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F2A000000000000000000001 /* config/Debug.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
-				DEVELOPMENT_TEAM = T58RY5HUA7;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(LOCAL_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AgentLiveActivityWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -945,8 +947,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.7;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lichaofan.dshmobile.AgentLiveActivityWidget;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LOCAL_BUNDLE_IDENTIFIER).AgentLiveActivityWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -959,13 +961,14 @@
 		};
 		FD30CB375EBC3646AECADEE1 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F2A000000000000000000001 /* config/Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = T58RY5HUA7;
+				DEVELOPMENT_TEAM = "$(LOCAL_DEVELOPMENT_TEAM)";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/shared/build/bin/iosArm64/releaseFramework";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*][arch=arm64]" = "$(SRCROOT)/shared/build/bin/iosSimulatorArm64/releaseFramework";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*][arch=x86_64]" = "$(SRCROOT)/shared/build/bin/iosX64/releaseFramework";
@@ -977,7 +980,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.lichaofan.dshmobile;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LOCAL_BUNDLE_IDENTIFIER)";
 				PRODUCT_MODULE_NAME = DeepSeekHarnessMobile;
 				PRODUCT_NAME = DshMobile;
 				PROVISIONING_PROFILE_SPECIFIER = "";

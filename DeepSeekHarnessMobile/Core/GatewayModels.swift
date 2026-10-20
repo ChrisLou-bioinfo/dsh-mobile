@@ -490,6 +490,15 @@ struct GatewayOutgoingImage: Hashable, Sendable, Identifiable {
     var name: String? = nil
 }
 
+/// A file selected on the phone and sent alongside a message. The gateway
+/// stages the bytes with `fileUploads/upload` and forwards the receipt to the
+/// host, so the agent receives a real attachment (same path as the WebUI).
+struct GatewayOutgoingFile: Hashable, Sendable, Identifiable {
+    var id = UUID()
+    var name: String
+    var data: Data
+}
+
 struct GatewayImageDimensions: Equatable, Sendable {
     var width: Int
     var height: Int

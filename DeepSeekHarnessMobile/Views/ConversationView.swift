@@ -360,6 +360,9 @@ struct ConversationView: View {
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var pendingImages: [GatewayOutgoingImage] = []
     @State private var isImportingImages = false
+    @State private var pendingFiles: [GatewayOutgoingFile] = []
+    @State private var isImportingFiles = false
+    @State private var showsFileImporter = false
     @State private var showsContextUsage = false
     @State private var showsModelPicker = false
     @State private var showsSessionStats = false
@@ -1036,6 +1039,9 @@ struct ConversationView: View {
             if !pendingImages.isEmpty {
                 pendingImageStrip
             }
+            if !pendingFiles.isEmpty {
+                pendingFileStrip
+            }
             VoiceComposerTextInput(
                 text: $draft,
                 isFocused: $composerIsFocused,
@@ -1121,6 +1127,8 @@ struct ConversationView: View {
         HStack(spacing: 7) {
             AnyView(composerPhotoButton)
 
+            AnyView(composerFileButton)
+
             AnyView(permissionControl)
 
             Spacer(minLength: 2)
@@ -1166,6 +1174,90 @@ struct ConversationView: View {
         .accessibilityLabel(store.supportsImages ? String(localized: "添加图片") : String(localized: "当前网关不支持图片"))
     }
 
+    private var composerFileButton: some View {
+        Button { showsFileImporter = true } label: {
+            Group {
+                if isImportingFiles {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "paperclip")
+                        .appFont(.system(size: 16, weight: .semibold))
+                }
+            }
+            .frame(width: 32, height: 32)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!store.supportsFiles || pendingFiles.count >= 8 || isImportingFiles)
+        .accessibilityLabel(store.supportsFiles ? String(localized: "添加文件") : String(localized: "当前网关不支持文件"))
+        .fileImporter(
+            isPresented: $showsFileImporter,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: true
+        ) { result in
+            Task { await importFiles(result) }
+        }
+    }
+
+    private var pendingFileStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(pendingFiles) { file in
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text")
+                            .appFont(.footnote)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(file.name)
+                                .appFont(.caption.weight(.medium))
+                                .lineLimit(1)
+                            Text(ByteCountFormatter.string(fromByteCount: Int64(file.data.count), countStyle: .file))
+                                .appFont(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button {
+                            pendingFiles.removeAll { $0.id == file.id }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, .black.opacity(0.68))
+                                .appFont(.system(size: 16))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("移除文件")
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(DSHColor.border, lineWidth: 1)
+                    )
+                }
+            }
+        }
+        .frame(height: 46)
+    }
+
+    private func importFiles(_ result: Result<[URL], Error>) async {
+        guard case let .success(urls) = result, !urls.isEmpty else { return }
+        await MainActor.run { isImportingFiles = true }
+        defer { Task { @MainActor in isImportingFiles = false } }
+        var imported: [GatewayOutgoingFile] = []
+        for url in urls.prefix(max(0, 8 - pendingFiles.count)) {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else { continue }
+            // Keep the frame budget in line with the gateway limits.
+            guard data.count <= 8 * 1024 * 1024 else { continue }
+            imported.append(GatewayOutgoingFile(name: url.lastPathComponent, data: data))
+        }
+        await MainActor.run {
+            for file in imported where !pendingFiles.contains(where: { $0.name == file.name && $0.data == file.data }) {
+                pendingFiles.append(file)
+            }
+        }
+    }
+
     private var composerContextButton: some View {
         Button { showsContextUsage = true } label: {
             if contextIsLoading && store.selectedContextSnapshot == nil {
@@ -1198,7 +1290,8 @@ struct ConversationView: View {
             }
             let content = store.composedSlashMessage(arguments: draft)
             let images = pendingImages
-            guard store.send(content, images: images) else { return }
+            let files = pendingFiles
+            guard store.send(content, images: images, files: files) else { return }
             if store.messageSubmissionPending {
                 submittedQueueDraft = draft
                 submittedQueueImages = images
@@ -1212,6 +1305,7 @@ struct ConversationView: View {
             draft = ""
             store.clearActiveSlashCommand()
             pendingImages = []
+            pendingFiles = []
             selectedPhotoItems = []
             composerIsFocused = false
             // Sending establishes a new tail-following intent before
@@ -1459,7 +1553,9 @@ struct ConversationView: View {
     }
 
     private var composerHasContent: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !pendingImages.isEmpty
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !pendingImages.isEmpty
+            || !pendingFiles.isEmpty
     }
 
     private var showsSessionStopButton: Bool {

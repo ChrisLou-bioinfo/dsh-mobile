@@ -378,6 +378,8 @@ final class AppStore: ObservableObject {
     @Published private(set) var pendingApprovalRequests: [GatewayPendingApprovalRequest] = []
     @Published private(set) var approvalRequestStatuses: [String: GatewayApprovalRequestStatus] = [:]
     @Published private(set) var supportsImages = false
+    /// Gateway advertises `file-upload`: files can be staged as real host attachments.
+    @Published private(set) var supportsFiles = false
     @Published private(set) var supportsFileDownloads = false
     private var supportsFileReferences = false
     @Published private(set) var supportsSlashCommands = false
@@ -1632,12 +1634,21 @@ final class AppStore: ObservableObject {
         arguments
     }
     @discardableResult
-    func send(_ text: String, images: [GatewayOutgoingImage] = [], mode: String = "queue") -> Bool {
+    func send(
+        _ text: String,
+        images: [GatewayOutgoingImage] = [],
+        files: [GatewayOutgoingFile] = [],
+        mode: String = "queue"
+    ) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty || !images.isEmpty else { return false }
+        guard !trimmed.isEmpty || !images.isEmpty || !files.isEmpty else { return false }
         guard gateway.state.isConnected else { lastError = String(localized: "请先在设置中连接 DeepSeek Harness"); return false }
         guard images.isEmpty || supportsImages else {
             lastError = String(localized: "当前 Mobile Gateway 不支持图片，请升级并重启 dsh web。")
+            return false
+        }
+        guard files.isEmpty || supportsFiles else {
+            lastError = String(localized: "当前 Mobile Gateway 不支持文件，请升级并重启 dsh web。")
             return false
         }
         guard !sessionAgentPreset.blocksSending else { return false }
@@ -1648,7 +1659,7 @@ final class AppStore: ObservableObject {
             }
             beginCommandPresetSubmission()
             commandSubmissionPending = true
-            gateway.executeCommand(line: command.line, images: images, sessionId: selectedSessionId)
+            gateway.executeCommand(line: command.line, images: images, files: files, sessionId: selectedSessionId)
             return true
         }
         guard !messageSubmissionPending else { return false }
@@ -1670,6 +1681,7 @@ final class AppStore: ObservableObject {
         gateway.sendMessage(
             text: trimmed,
             images: images,
+            files: files,
             sessionId: selectedSessionId,
             workspaceId: selectedSessionId == nil ? activeWorkspace?.id : nil,
             mode: mode
@@ -2050,6 +2062,7 @@ final class AppStore: ObservableObject {
             dispatchQuestionIntent(.reset)
             dispatchApprovalIntent(.reset)
             supportsImages = payload.protocolVersion >= 3 && payload.capabilities.contains("images")
+            supportsFiles = payload.protocolVersion >= 3 && payload.capabilities.contains("file-upload")
             supportsFileDownloads = payload.protocolVersion >= 3 && payload.capabilities.contains("file-downloads")
             supportsFileReferences = payload.capabilities.contains("file-references-v1")
             supportsSlashCommands = payload.capabilities.contains("commands")

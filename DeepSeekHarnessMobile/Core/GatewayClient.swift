@@ -459,12 +459,13 @@ final class GatewayClient: ObservableObject {
     func sendMessage(
         text: String,
         images: [GatewayOutgoingImage] = [],
+        files: [GatewayOutgoingFile] = [],
         sessionId: String?,
         workspaceId: String? = nil,
         mode: String = "queue"
     ) {
         if let conversationClient {
-            conversationClient.sendMessage(text: text, images: images, sessionId: sessionId, workspaceId: workspaceId, mode: mode)
+            conversationClient.sendMessage(text: text, images: images, files: files, sessionId: sessionId, workspaceId: workspaceId, mode: mode)
             return
         }
         guard let socket else {
@@ -480,6 +481,9 @@ final class GatewayClient: ObservableObject {
                     data: $0.data,
                     name: $0.name
                 )
+            },
+            files: files.map {
+                GatewayMessageRequest.File(name: $0.name, data: $0.data.base64EncodedString())
             },
             workspaceId: sessionId == nil && workspaceId?.isEmpty == false ? workspaceId : nil,
             clientTimeZone: TimeZone.current.identifier,
@@ -500,6 +504,7 @@ final class GatewayClient: ObservableObject {
     func executeCommand(
         line: String,
         images: [GatewayOutgoingImage] = [],
+        files: [GatewayOutgoingFile] = [],
         sessionId: String?
     ) {
         guard let sessionId, !sessionId.isEmpty else {
@@ -511,6 +516,9 @@ final class GatewayClient: ObservableObject {
             line: line,
             images: images.map {
                 GatewayMessageRequest.Image(mediaType: $0.mediaType, data: $0.data, name: $0.name)
+            },
+            files: files.map {
+                GatewayMessageRequest.File(name: $0.name, data: $0.data.base64EncodedString())
             }
         )
         Task { [weak self] in
@@ -991,9 +999,15 @@ private struct GatewayMessageRequest: Encodable, Sendable {
     var sessionId: String?
     var text: String
     var images: [Image]
+    var files: [File]
     var workspaceId: String?
     var clientTimeZone: String
     var mode: String
+
+    struct File: Encodable, Sendable {
+        var name: String
+        var data: String   // base64
+    }
 }
 
 private struct GatewayCommandExecuteRequest: Encodable, Sendable {
@@ -1001,6 +1015,7 @@ private struct GatewayCommandExecuteRequest: Encodable, Sendable {
     var sessionId: String
     var line: String
     var images: [GatewayMessageRequest.Image]
+    var files: [GatewayMessageRequest.File]
 }
 
 private enum GatewayDeviceIdentityStore {

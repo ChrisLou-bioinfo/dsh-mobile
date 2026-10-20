@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <!-- Mydsh monogram: geometric M, used as a template glyph in Live Activities. -->
-  <path fill="#000000" d="M7.5 93.5 L7.5 6.5 L28.5 6.5 L50 58.5 L71.5 6.5 L92.5 6.5 L92.5 93.5 L74 93.5 L74 39.5 L56.5 90 L43.5 90 L26 39.5 L26 93.5 Z"/>
+  <!-- Mydsh monogram (with optical padding so it stays legible at 18-20pt). -->
+  <path fill="#000000" d="M16.00 84.80 L16.00 15.20 L32.80 15.20 L50.00 56.80 L67.20 15.20 L84.00 15.20 L84.00 84.80 L69.20 84.80 L69.20 41.60 L55.20 82.00 L44.80 82.00 L30.80 41.60 L30.80 84.80 Z"/>
 </svg>

@@ -253,9 +253,10 @@ struct WorkspaceView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("打开侧边栏")
             Text("连接硅基世界")
-                .appFont(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .appFont(.title3.weight(.bold))
+                .foregroundStyle(DSHColor.ocean)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .accessibilityHidden(true)
             Spacer(minLength: 0)
         }

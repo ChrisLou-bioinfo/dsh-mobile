@@ -176,10 +176,9 @@ struct WorkspaceView: View {
                 .onTapGesture { sessionSearchIsFocused = false }
             ScrollView {
                 VStack(alignment: .leading, spacing: usesColumns ? 40 : 18) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        header(openDrawer: openDrawer).id("workspace-header")
-                        GatewaySwitcherBar()
-                    }
+                    // Server switching lives in the drawer; the home header keeps
+                    // only the brand/tagline row.
+                    header(openDrawer: openDrawer).id("workspace-header")
                     if usesColumns {
                         HStack(alignment: .top, spacing: 48) {
                             workspaceActions

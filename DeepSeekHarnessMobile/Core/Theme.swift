@@ -71,7 +71,8 @@ struct AppFont {
     func resolved(scale: CGFloat) -> Font {
         let base = size.map { UIFontMetrics.default.scaledValue(for: $0) }
             ?? UIFont.preferredFont(forTextStyle: style).pointSize
-        var font = Font.system(size: base * scale, weight: fontWeight ?? (style == .headline ? .semibold : .regular), design: design)
+        // Terminal theme: every text style renders monospaced.
+        var font = Font.system(size: base * scale, weight: fontWeight ?? (style == .headline ? .semibold : .regular), design: .monospaced)
         if usesMonospacedDigits { font = font.monospacedDigit() }
         return font
     }
@@ -128,22 +129,34 @@ extension UIFont {
     }
 }
 
+/// Terminal / console palette.
+///
+/// The visual language is deliberately flat and monochrome-plus-accent:
+/// near-black surfaces, 1px hairline borders, amber as the single primary
+/// accent, cyan for secondary emphasis. No blur, no gradients, no shadows.
 enum DSHColor {
-    static let navy = Color(red: 0.025, green: 0.09, blue: 0.17)
-    static let navyRaised = Color(red: 0.05, green: 0.14, blue: 0.25)
-    static let ocean = Color(red: 0.18, green: 0.42, blue: 0.9)
-    static let mist = Color(red: 0.75, green: 0.84, blue: 1)
-    static let ink = Color(red: 0.055, green: 0.075, blue: 0.1)
-    static let paper = Color(red: 0.975, green: 0.98, blue: 0.99)
-    static let purple = Color(red: 0.48, green: 0.33, blue: 0.78)
-    static let orange = Color(red: 0.94, green: 0.49, blue: 0.08)
-    static let amber = Color(red: 1.0, green: 0.68, blue: 0.12)
-    static let success = Color(red: 0.18, green: 0.72, blue: 0.36)
+    static let navy = Color(red: 0.016, green: 0.016, blue: 0.020)          // 主背景（近黑）
+    static let navyRaised = Color(red: 0.063, green: 0.063, blue: 0.071)    // 面板 / 卡片
+    static let ocean = Color(red: 1.000, green: 0.690, blue: 0.000)         // 主强调（琥珀 #FFB000）
+    static let mist = Color(red: 0.600, green: 0.600, blue: 0.620)          // 次级文字
+    static let ink = Color(red: 0.043, green: 0.043, blue: 0.051)           // 浅色模式前景 / 反向
+    static let paper = Color(red: 0.965, green: 0.965, blue: 0.973)         // 浅色纸面
+    static let purple = Color(red: 0.208, green: 0.839, blue: 0.910)        // 次强调（青）
+    static let orange = Color(red: 1.000, green: 0.478, blue: 0.157)        // 警告
+    static let amber = Color(red: 1.000, green: 0.820, blue: 0.400)         // 提示
+    static let success = Color(red: 0.235, green: 0.855, blue: 0.518)       // 成功
+
+    // Terminal-specific tokens.
+    static let border = Color(red: 0.180, green: 0.180, blue: 0.196)        // 面板描边
+    static let panelFill = Color(red: 0.055, green: 0.055, blue: 0.063)     // 面板填充
+    static let prompt = Color(red: 1.000, green: 0.690, blue: 0.000)        // 提示符
 }
 
+/// Kept under the upstream name so screens stay untouched; the terminal theme
+/// no longer uses the Metal "deep ocean" shader.
 struct DeepOceanBackground: View {
     var body: some View {
-        HarnessAnimatedBackground(style: UIDevice.current.userInterfaceIdiom == .pad ? .pad : .phone)
+        TerminalBackground()
     }
 }
 
@@ -184,6 +197,79 @@ private struct AdaptiveListWidth: ViewModifier {
                 AdaptiveLayout.horizontalInset(width: geometry.size.width, maximumWidth: maximumWidth),
                 for: .scrollContent
             )
+        }
+    }
+}
+
+// MARK: - Terminal background
+
+/// Terminal-themed app background.
+///
+/// Replaces the upstream animated "deep ocean" whale shader with a static,
+/// cheap-to-render console backdrop: near-black field, faint 1px grid,
+/// subtle top accent glow and a vignette. Deliberately no Metal, no blur and
+/// no animation so it costs nothing on battery and works on any simulator.
+struct TerminalBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Grid cell size in points.
+    var cell: CGFloat = 28
+    var showsGrid: Bool = true
+
+    private var isDark: Bool { colorScheme == .dark }
+
+    private var baseColor: Color {
+        isDark ? Color(red: 0.016, green: 0.016, blue: 0.020)
+               : Color(red: 0.965, green: 0.965, blue: 0.973)
+    }
+
+    private var gridColor: Color {
+        isDark ? Color.white.opacity(0.045) : Color.black.opacity(0.055)
+    }
+
+    private var glowColor: Color {
+        isDark ? DSHColor.ocean.opacity(0.045) : DSHColor.ocean.opacity(0.05)
+    }
+
+    var body: some View {
+        ZStack {
+            baseColor
+            if showsGrid { grid }
+            // Faint accent bloom behind the header area.
+            RadialGradient(
+                colors: [glowColor, .clear],
+                center: UnitPoint(x: 0.5, y: -0.05),
+                startRadius: 0,
+                endRadius: 340
+            )
+            // Vignette keeps the edges quiet.
+            RadialGradient(
+                colors: [.clear, (isDark ? Color.black : Color.black).opacity(isDark ? 0.55 : 0.06)],
+                center: .center,
+                startRadius: 220,
+                endRadius: 700
+            )
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+    }
+
+    private var grid: some View {
+        Canvas { context, size in
+            var path = Path()
+            var x: CGFloat = 0
+            while x <= size.width {
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+                x += cell
+            }
+            var y: CGFloat = 0
+            while y <= size.height {
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+                y += cell
+            }
+            context.stroke(path, with: .color(gridColor), lineWidth: 0.5)
         }
     }
 }

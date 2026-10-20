@@ -4819,13 +4819,13 @@
         }
       }
     },
-    "尚未连接到 DeepSeek Harness。请点击主页右上角的 🔑 按钮，扫描配对二维码或手动输入 Token 进行连接。" : {
+    "尚未连接到 DeepSeek Harness。请点击主页右上角的扫码按钮，扫描配对二维码或手动输入 Token 进行连接。" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not connected to DeepSeek Harness. Tap the 🔑 button at the top-right of Home to scan the pairing QR code or enter a token manually."
+            "value" : "Not connected to DeepSeek Harness. Tap the scan button at the top-right of Home to scan the pairing QR code or enter a token manually."
           }
         }
       }

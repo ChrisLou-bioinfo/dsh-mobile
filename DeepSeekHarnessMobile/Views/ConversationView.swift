@@ -395,15 +395,6 @@ struct ConversationView: View {
         ZStack {
             conversationBackground.ignoresSafeArea()
             VStack(spacing: 0) {
-                Picker("视图", selection: $activeView) {
-                    Text("对话").tag(0)
-                    Text("轨迹").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 40)
-                .readableContentWidth(440)
-                .padding(.vertical, 6)
-
                 PersistentSessionPager(selection: $activeView) {
                     chat
                 } trajectory: {
@@ -842,12 +833,16 @@ struct ConversationView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 14) {
-            WhalenessOrcaIcon(size: 52)
-                .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
-            Text("操作远端 DSH Agent").appFont(.title3.weight(.semibold))
-            Text("发送任务后，工具调用、推理进度和最终回复会通过 Mobile Gateway 实时返回。")
-                .appFont(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        VStack(spacing: 18) {
+            Image("MydshLaunchMark")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 68, height: 68)
+                .foregroundStyle(DSHColor.ocean)
+                .accessibilityHidden(true)
+            Text("连接硅基世界")
+                .appFont(.title2.weight(.semibold))
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 28)

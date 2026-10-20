@@ -7,39 +7,22 @@ struct GlassSurface: ViewModifier {
     let clear: Bool
     let shadowOpacity: Double
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            if clear {
-                if let tint {
-                    content
-                        .glassEffect(.clear.tint(tint), in: .rect(cornerRadius: radius))
-                } else {
-                    content
-                        .glassEffect(.clear, in: .rect(cornerRadius: radius))
-                }
-            } else {
-                if let tint {
-                    content
-                        .glassEffect(.regular.tint(tint), in: .rect(cornerRadius: radius))
-                } else {
-                    content
-                        .glassEffect(.regular, in: .rect(cornerRadius: radius))
-                }
+        // Terminal surfaces: flat fill + 1px hairline border, tiny radius.
+        let r = min(radius, 6)
+        let fill = tint?.opacity(clear ? 0.10 : 0.55)
+        content
+            .background {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .fill(fill.map { AnyShapeStyle($0) } ?? AnyShapeStyle(DSHColor.panelFill))
             }
-        } else {
-            content
-                .background {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(dark ? AnyShapeStyle(.ultraThinMaterial.opacity(tint == nil ? 0.75 : 0.82)) : AnyShapeStyle(.thinMaterial))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                                .fill(tint ?? .clear)
-                        }
-                }
-                .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(.white.opacity(dark ? 0.2 : 0.7), lineWidth: 0.8))
-                .shadow(color: DSHColor.navy.opacity(shadowOpacity), radius: 16, y: 8)
-        }
+            .overlay {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(
+                        tint.map { AnyShapeStyle($0.opacity(0.45)) } ?? AnyShapeStyle(DSHColor.border),
+                        lineWidth: 1
+                    )
+            }
     }
 }
 
@@ -48,19 +31,16 @@ extension View {
         modifier(GlassSurface(radius: radius, dark: dark, tint: tint, clear: clear, shadowOpacity: shadowOpacity))
     }
 
-    /// Button 与 Menu 共用原生圆形液态玻璃交互，旧系统沿用材质样式。
-    @ViewBuilder
+    /// Flat circular control for the terminal theme.
     func glassCircleButton() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-        } else {
-            self
-                .buttonStyle(.plain)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 0.8))
-        }
+        // Terminal theme: flat square-ish control instead of a glass bubble.
+        self
+            .buttonStyle(.plain)
+            .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(DSHColor.border, lineWidth: 1)
+            )
     }
 }
 
@@ -100,9 +80,9 @@ struct HarnessMark: View {
                 .scaledToFit()
                 .foregroundStyle(onDarkBackground ? Color.white : Color.black)
                 .frame(width: 26, height: 26)
-            Text("Mydsh")
-                .font(.system(size: 23, weight: .semibold, design: .rounded))
-                .tracking(0.2)
+            Text("mydsh")
+                .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                .tracking(0.5)
                 .foregroundStyle(onDarkBackground ? Color.white : Color.black)
             Spacer(minLength: 0)
         }

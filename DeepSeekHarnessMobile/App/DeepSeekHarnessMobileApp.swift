@@ -30,7 +30,13 @@ struct DeepSeekHarnessMobileApp: App {
                 .environmentObject(hosts.activeStore)
                 .environmentObject(hosts)
                 .modifier(AppFontScope())
+                // Terminal theme is dark-only by design: the palette, hairlines and
+                // accent assume a near-black field.
+                .preferredColorScheme(.dark)
                 .task {
+                    // Lets UI review builds run without the one-time system prompt
+                    // covering the screen (set via SIMCTL_CHILD_MYDSH_SKIP_NOTIFICATION_PROMPT=1).
+                    guard ProcessInfo.processInfo.environment["MYDSH_SKIP_NOTIFICATION_PROMPT"] != "1" else { return }
                     await AgentUserNotificationManager.shared.requestAuthorizationIfNeeded()
                 }
                 .alert("主机连接", isPresented: Binding(get: { hosts.error != nil }, set: { if !$0 { hosts.error = nil } })) {

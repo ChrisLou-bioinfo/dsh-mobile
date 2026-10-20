@@ -151,6 +151,14 @@ struct WorkspaceView: View {
             ManualGatewayPairingSheet(gateway: hosts.pairingStore?.gateway ?? store.gateway)
                 .environmentObject(store)
         }
+        .task {
+            // UI review aid: open the drawer on launch (SIMCTL_CHILD_MYDSH_OPEN_DRAWER=1).
+            guard ProcessInfo.processInfo.environment["MYDSH_OPEN_DRAWER"] == "1", drawerOffset == 0 else { return }
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                drawerOffset = min(UIScreen.main.bounds.width * 0.76, 360)
+            }
+        }
     }
 
     private func workspaceContent(
@@ -222,7 +230,7 @@ struct WorkspaceView: View {
     private var workspaceActions: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 7) {
-                Text("探索未至之境")
+                Text("连接硅基世界")
                     .appFont(.system(size: 32, weight: .bold))
                 if connectionIsReady {
                     Text("已连接Deepseek Harness预览版")
@@ -270,7 +278,14 @@ struct WorkspaceView: View {
         VStack(alignment: .leading, spacing: 0) {
             HarnessMark(onDarkBackground: colorScheme == .dark, width: min(width - 48, 216))
                 .padding(.leading, 12)
-                .padding(.bottom, 16)
+                .padding(.bottom, 18)
+
+            drawerServerList
+
+            Rectangle()
+                .fill(DSHColor.border)
+                .frame(height: 1)
+                .padding(.vertical, 12)
 
             drawerItem("插件", icon: {
                 Image("DshPluginPinwheel")
@@ -285,7 +300,28 @@ struct WorkspaceView: View {
                     .appFont(.system(size: 20, weight: .medium))
                     .frame(width: 24)
             }, action: { selectDrawerItem(onScheduledTasks) })
+
             Spacer(minLength: 0)
+
+            Rectangle()
+                .fill(DSHColor.border)
+                .frame(height: 1)
+                .padding(.vertical, 12)
+
+            drawerItem("设置", icon: {
+                Image(systemName: "gearshape")
+                    .appFont(.system(size: 20, weight: .medium))
+                    .frame(width: 24)
+            }, action: { closeDrawer(); onSettings() })
+            drawerItem("扫码连接", icon: {
+                Image(systemName: "qrcode.viewfinder")
+                    .appFont(.system(size: 20, weight: .medium))
+                    .frame(width: 24)
+            }, action: {
+                closeDrawer()
+                store.lastError = nil
+                showsQRScanner = true
+            })
         }
         .padding(.horizontal, 18)
         .padding(.top, topInset + 18)
@@ -293,6 +329,65 @@ struct WorkspaceView: View {
         .opacity(0.6 + 0.4 * progress)
         .scaleEffect(0.9 + 0.1 * progress, anchor: .leading)
         .accessibilityHidden(progress == 0)
+    }
+
+    /// Configured gateway servers, listed in the drawer so hosts can be
+    /// switched without leaving the main screen.
+    private var drawerServerList: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("服务器")
+                .appFont(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 12)
+                .padding(.bottom, 6)
+
+            if hosts.profiles.isEmpty {
+                Text("尚未配对任何服务器")
+                    .appFont(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 12)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(hosts.profiles) { profile in
+                    let isActive = hosts.activeID == profile.id
+                    let isOnline = hosts.onlineIDs.contains(profile.id)
+                    Button {
+                        hosts.select(profile)
+                        closeDrawer()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: profile.deviceKind == "laptopcomputer" ? "laptopcomputer" : "desktopcomputer")
+                                .appFont(.system(size: 18, weight: .medium))
+                                .frame(width: 24)
+                                .foregroundStyle(isActive ? DSHColor.ocean : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(profile.displayName)
+                                    .appFont(.body.weight(isActive ? .semibold : .regular))
+                                    .lineLimit(1)
+                                Text(isOnline ? "在线" : "离线")
+                                    .appFont(.caption2)
+                                    .foregroundStyle(isOnline ? DSHColor.success : .secondary)
+                            }
+                            Spacer(minLength: 0)
+                            if isActive {
+                                Image(systemName: "checkmark")
+                                    .appFont(.footnote.weight(.bold))
+                                    .foregroundStyle(DSHColor.ocean)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .contentShape(Rectangle())
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(isActive ? DSHColor.panelFill : Color.clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.bottom, 4)
     }
 
     private func drawerItem<Icon: View>(
@@ -429,8 +524,11 @@ struct WorkspaceView: View {
         } else {
             Button(action: action) { label }
                 .buttonStyle(.plain)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 0.8))
+                .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(DSHColor.border, lineWidth: 1)
+                )
                 .accessibilityLabel(accessibilityLabel)
         }
     }
@@ -1029,8 +1127,11 @@ private struct GatewayAuthenticationMenu: View {
         } else {
             menu
                 .buttonStyle(.plain)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 0.8))
+                .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(DSHColor.border, lineWidth: 1)
+                )
         }
     }
 
@@ -1043,7 +1144,7 @@ private struct GatewayAuthenticationMenu: View {
                 Label("手动输入配对信息", systemImage: "keyboard")
             }
         } label: {
-            Image(systemName: "person.badge.key.fill")
+            Image(systemName: "qrcode.viewfinder")
                 .appFont(.system(size: 17, weight: .semibold))
                 .frame(width: 40, height: 40)
                 .contentShape(Circle())

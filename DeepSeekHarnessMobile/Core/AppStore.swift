@@ -903,7 +903,7 @@ final class AppStore: ObservableObject {
         hasHandledColdLaunchConnection = true
         guard preferences.automaticallyConnect else { return }
         guard gateway.hasStoredCredential(for: endpoint) else {
-            lastError = String(localized: "尚未连接到 DeepSeek Harness。请点击主页右上角的扫码按钮，扫描配对二维码或手动输入 Token 进行连接。")
+            lastError = String(localized: "尚未连接到 DeepSeek Harness。请点击左上角 Mydsh 打开侧边栏，选择「扫码连接」，扫描配对二维码或手动输入 Token。")
             return
         }
         connect()

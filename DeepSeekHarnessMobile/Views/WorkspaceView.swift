@@ -188,7 +188,6 @@ struct WorkspaceView: View {
                                 .frame(maxWidth: .infinity)
                         }
                     } else {
-                        Spacer(minLength: 44)
                         workspaceActions
                         recentSessions
                     }
@@ -229,15 +228,6 @@ struct WorkspaceView: View {
 
     private var workspaceActions: some View {
         VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 7) {
-                Text("连接硅基世界")
-                    .appFont(.system(size: 32, weight: .bold))
-                if connectionIsReady {
-                    Text("已连接Deepseek Harness预览版")
-                        .appFont(.subheadline).foregroundStyle(.white.opacity(0.65))
-                }
-            }
-            .id("workspace-hero")
             workspaceCard.id("workspace-card")
             newSessionButton.id("workspace-new-session")
         }
@@ -257,19 +247,18 @@ struct WorkspaceView: View {
     }
 
     private func header(openDrawer: @escaping () -> Void) -> some View {
-        HStack {
+        HStack(spacing: 10) {
             Button(action: openDrawer) {
-                HarnessMark(width: dynamicTypeSize.isAccessibilitySize ? 150 : 216)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HarnessMark(width: 118)
             }
-                .layoutPriority(-1)
-                .buttonStyle(.plain)
-                .accessibilityLabel("打开侧边栏")
-            Spacer()
-            authenticationMenu
-            settingsButton
-                // Match the outer glass circle to the workspace cards' trailing edge.
-                .padding(.trailing, -4)
+            .buttonStyle(.plain)
+            .accessibilityLabel("打开侧边栏")
+            Text("连接硅基世界")
+                .appFont(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .accessibilityHidden(true)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

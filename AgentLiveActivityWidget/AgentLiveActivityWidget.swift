@@ -630,12 +630,12 @@ private struct AgentBrandMark: View {
 }
 
 private enum AgentActivityColors {
-    static let accent = Color(red: 1.0, green: 0.690, blue: 0.0)
+    static let accent = Color(red: 0.596, green: 0.851, blue: 0.925)
     static let pending = Color(red: 0.937, green: 0.761, blue: 0.506)
     static let approved = Color(red: 0.612, green: 0.871, blue: 0.757)
     static let rejected = Color(red: 0.867, green: 0.741, blue: 0.729)
     static let failed = Color(red: 1, green: 0.718, blue: 0.643)
-    static let lockBackground = Color(red: 0.055, green: 0.055, blue: 0.063)
+    static let lockBackground = Color(red: 0.125, green: 0.208, blue: 0.255)
     static let lockText = Color(red: 0.929, green: 0.961, blue: 0.969)
     static let lockDimmed = Color(red: 0.702, green: 0.776, blue: 0.812)
     static let lockTile = Color(red: 0.082, green: 0.165, blue: 0.212)

@@ -630,7 +630,7 @@ private struct AgentBrandMark: View {
 }
 
 private enum AgentActivityColors {
-    static let accent = Color(red: 0.596, green: 0.851, blue: 0.925)
+    static let accent = Color(red: 1.0, green: 0.690, blue: 0.0)   // 与 App 主题同款琥珀 #FFB000
     static let pending = Color(red: 0.937, green: 0.761, blue: 0.506)
     static let approved = Color(red: 0.612, green: 0.871, blue: 0.757)
     static let rejected = Color(red: 0.867, green: 0.741, blue: 0.729)

@@ -1,6 +1,5 @@
 import ActivityKit
 import AVFoundation
-import CoreLocation
 import UIKit
 import OSLog
 
@@ -15,27 +14,25 @@ protocol AgentLongRunningKeepAlive: AnyObject {
     func prepareForTermination()
 }
 
-/// 在 Agent 工作期间组合使用后台定位与静音音频，延长本地 WebSocket
-/// 获得执行时间的机会。所有资源只在确有 Agent 工作时创建，并在工作结束后释放。
+/// 在 Agent 工作期间用静音音频延长本地 WebSocket 获得执行时间的机会。
+///
+/// 上游同时使用后台定位与静音音频；本 App 不使用定位（用户要求，且状态栏
+/// 的定位箭头会干扰实时活动），因此这里只保留静音音频这一条保活路径：
+/// 所有资源只在确有 Agent 工作时创建，并在工作结束后立即释放。
 @MainActor
 final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive {
     private static let logger = Logger(subsystem: "ai.dsh.mobile.ios", category: "agent-keepalive")
 
     private func traceKeepAlive(_ event: String) {
-        Self.logger.notice("[AgentKeepAlive] event=\(event, privacy: .public) background=\(self.applicationIsInBackground) workActive=\(self.agentWorkIsActive) location=\(self.isUpdatingLocation) audio=\(self.silentAudioIsRunning) authorization=\(self.locationManager.authorizationStatus.rawValue) liveActivitiesEnabled=\(ActivityAuthorizationInfo().areActivitiesEnabled)")
+        Self.logger.notice("[AgentKeepAlive] event=\(event, privacy: .public) background=\(self.applicationIsInBackground) workActive=\(self.agentWorkIsActive) audio=\(self.silentAudioIsRunning) liveActivitiesEnabled=\(ActivityAuthorizationInfo().areActivitiesEnabled)")
     }
 
     static let shared = AgentBackgroundKeepAliveManager()
 
-    private let locationStartDelay: Duration = .seconds(15)
     private let pulseInterval: TimeInterval = 25
 
     private var agentWorkIsActive = false
     private var applicationIsInBackground = false
-    private var didRequestAlwaysAuthorization = false
-    private var locationStartTask: Task<Void, Never>?
-    private var backgroundActivitySession: CLBackgroundActivitySession?
-    private var isUpdatingLocation = false
 
     private var audioEngine: AVAudioEngine?
     private var audioPlayer: AVAudioPlayerNode?
@@ -46,28 +43,11 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
 
     var onPulse: (() -> Void)?
 
-    var isKeepingAlive: Bool {
-        silentAudioIsRunning || isUpdatingLocation
-    }
+    var isKeepingAlive: Bool { silentAudioIsRunning }
 
     private var silentAudioIsRunning: Bool {
         audioEngine?.isRunning == true && audioPlayer?.isPlaying == true
     }
-
-    private lazy var locationManager: CLLocationManager = {
-        let manager = CLLocationManager()
-        manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
-        manager.distanceFilter = 1_000
-        manager.activityType = .other
-        manager.pausesLocationUpdatesAutomatically = false
-        manager.allowsBackgroundLocationUpdates = true
-        // Live Activity 已经向用户明确展示 Agent 正在后台运行。额外的定位
-        // 指示会占用主岛，并在定位停止后继续留下可点击的“最近使用”入口，
-        // 造成 Agent 卡片已结束但点击空岛仍返回 App 的错觉。
-        manager.showsBackgroundLocationIndicator = false
-        return manager
-    }()
 
     private override init() {
         super.init()
@@ -113,19 +93,13 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
 
         if applicationIsInBackground {
             startBackgroundResources()
-        } else {
-            prepareLocationAuthorizationAndSession()
         }
     }
 
     func applicationDidBecomeActive() {
         applicationIsInBackground = false
-        locationStartTask?.cancel()
-        locationStartTask = nil
-        stopLocationUpdates()
         stopSilentAudio()
         stopPulseTimer()
-        if agentWorkIsActive { prepareLocationAuthorizationAndSession() }
     }
 
     func applicationDidEnterBackground() {
@@ -140,101 +114,11 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
         stopAllResources()
     }
 
-    private func prepareLocationAuthorizationAndSession() {
-        guard CLLocationManager.locationServicesEnabled() else { return }
-
-        switch locationManager.authorizationStatus {
-        case .notDetermined:
-            guard !didRequestAlwaysAuthorization else { return }
-            didRequestAlwaysAuthorization = true
-            locationManager.requestAlwaysAuthorization()
-        case .authorizedWhenInUse:
-            ensureBackgroundActivitySession()
-            guard !didRequestAlwaysAuthorization else { return }
-            didRequestAlwaysAuthorization = true
-            locationManager.requestAlwaysAuthorization()
-        case .authorizedAlways:
-            ensureBackgroundActivitySession()
-        case .restricted, .denied:
-            break
-        @unknown default:
-            break
-        }
-    }
-
-    private func ensureBackgroundActivitySession() {
-        guard agentWorkIsActive,
-              !applicationIsInBackground,
-              backgroundActivitySession == nil else { return }
-        backgroundActivitySession = CLBackgroundActivitySession()
-    }
-
     private func startBackgroundResources() {
-        // A playback audio session owns iOS's primary Now Playing island even
-        // when its buffer is silent. Running it beside our Live Activity pushes
-        // the Agent card into the detached minimal bubble and leaves the main
-        // island looking empty. Location is the keep-alive path while the Agent
-        // Live Activity is visible; silent audio remains a fallback for devices
-        // where Live Activities are unavailable or disabled.
-        reconcileSilentAudio()
+        startSilentAudio()
         startPulseTimer()
-        startLocationUpdatesIfAuthorized()
-        if !isUpdatingLocation { scheduleLocationUpdates() }
         pulse()
         traceKeepAlive("resources-started")
-    }
-
-    private var hasVisibleAgentLiveActivity: Bool {
-        !Activity<AgentActivityAttributes>.activities.isEmpty
-    }
-
-    private var shouldUseSilentAudio: Bool {
-        // ActivityKit 只要已启用，就把主岛完整留给 Agent 实时活动。
-        // 否则播放会被系统当作 Now Playing，即使音量为零，也会把 Agent
-        // 挤进右侧最小岛。实时活动不可用时才回退到静音音频保活。
-        !ActivityAuthorizationInfo().areActivitiesEnabled && !hasVisibleAgentLiveActivity
-    }
-
-    private func reconcileSilentAudio() {
-        if shouldUseSilentAudio {
-            startSilentAudio()
-        } else {
-            stopSilentAudio()
-        }
-    }
-
-    private func scheduleLocationUpdates() {
-        guard locationStartTask == nil else { return }
-        locationStartTask = Task { [weak self] in
-            guard let self else { return }
-            try? await Task.sleep(for: locationStartDelay)
-            guard !Task.isCancelled else { return }
-            self.locationStartTask = nil
-            self.startLocationUpdatesIfAuthorized()
-        }
-    }
-
-    private func startLocationUpdatesIfAuthorized() {
-        traceKeepAlive("startLocationUpdatesIfAuthorized")
-        guard agentWorkIsActive,
-              applicationIsInBackground,
-              !isUpdatingLocation else { return }
-        switch locationManager.authorizationStatus {
-        case .authorizedAlways, .authorizedWhenInUse:
-            locationManager.startUpdatingLocation()
-            isUpdatingLocation = true
-        case .notDetermined, .restricted, .denied:
-            break
-        @unknown default:
-            break
-        }
-    }
-
-    private func stopLocationUpdates() {
-        traceKeepAlive("stopLocationUpdates")
-        guard isUpdatingLocation else { return }
-        locationManager.stopUpdatingLocation()
-        isUpdatingLocation = false
     }
 
     private func startSilentAudio() {
@@ -242,7 +126,7 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
         guard agentWorkIsActive, applicationIsInBackground else { return }
         guard !silentAudioIsRunning, !isStartingSilentAudio else { return }
         isStartingSilentAudio = true
-        defer { isStartingSilentAudio = false }
+        defer { self.isStartingSilentAudio = false }
 
         stopSilentAudio(deactivateSession: false)
         do {
@@ -322,18 +206,13 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
 
     private func pulse() {
         guard agentWorkIsActive, applicationIsInBackground else { return }
-        reconcileSilentAudio()
+        if !silentAudioIsRunning { startSilentAudio() }
         onPulse?()
     }
 
     private func stopAllResources() {
         traceKeepAlive("stopAllResources")
-        locationStartTask?.cancel()
-        locationStartTask = nil
         stopPulseTimer()
-        stopLocationUpdates()
-        backgroundActivitySession?.invalidate()
-        backgroundActivitySession = nil
         stopSilentAudio()
     }
 
@@ -344,58 +223,22 @@ final class AgentBackgroundKeepAliveManager: NSObject, AgentLongRunningKeepAlive
         if type == .began {
             stopSilentAudio(deactivateSession: false)
         } else if agentWorkIsActive, applicationIsInBackground {
-            reconcileSilentAudio()
+            startSilentAudio()
         }
     }
 
     @objc private func handleAudioRouteChange(_ notification: Notification) {
         guard agentWorkIsActive, applicationIsInBackground else { return }
-        reconcileSilentAudio()
+        if !silentAudioIsRunning { startSilentAudio() }
     }
 
     @objc private func handleMediaServicesReset() {
         guard agentWorkIsActive, applicationIsInBackground else { return }
         stopSilentAudio(deactivateSession: false)
-        reconcileSilentAudio()
+        startSilentAudio()
     }
 
     @objc private func handleApplicationTermination() {
         prepareForTermination()
-    }
-}
-
-extension AgentBackgroundKeepAliveManager: @preconcurrency CLLocationManagerDelegate {
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard agentWorkIsActive else { return }
-        switch manager.authorizationStatus {
-        case .authorizedAlways, .authorizedWhenInUse:
-            if applicationIsInBackground {
-                startLocationUpdatesIfAuthorized()
-            } else {
-                prepareLocationAuthorizationAndSession()
-            }
-        case .restricted, .denied:
-            stopLocationUpdates()
-            backgroundActivitySession?.invalidate()
-            backgroundActivitySession = nil
-        case .notDetermined:
-            break
-        @unknown default:
-            break
-        }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        // 不保存或上传位置；定位回调只作为系统授予的后台执行机会。
-        pulse()
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-#if DEBUG
-        let locationError = error as? CLError
-        if locationError?.code != .locationUnknown {
-            print("[AgentKeepAlive] 后台定位失败：\(error.localizedDescription)")
-        }
-#endif
     }
 }

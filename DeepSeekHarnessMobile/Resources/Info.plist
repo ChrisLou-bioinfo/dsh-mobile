@@ -44,10 +44,8 @@
 	<string>允许 Mydsh 扫描 DeepSeek Harness WebUI 生成的设备配对二维码。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>连接局域网中的 DeepSeek Harness Mobile Gateway。</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Agent 执行期间使用低精度后台定位维持任务连接；位置数据不会保存或上传。</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Agent 执行期间使用低精度定位维持任务连接；位置数据不会保存或上传。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>用于按住说话，将录音通过你的 DSH 网关转成文字。</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
@@ -60,7 +58,6 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
-		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -75,7 +72,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>用于按住说话，将录音通过你的 DSH 网关转成文字。</string>
 </dict>
 </plist>

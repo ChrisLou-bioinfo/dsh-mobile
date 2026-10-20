@@ -132,6 +132,24 @@ Xcode 若升级大版本，Metal Toolchain 需要重新下载。
 3. 外部测试（分享给别人）需要 Beta App Review；本次已提交，等审核通过即可用公开链接。
 
 
+
+## 文件上传（本地网关分支）
+
+上游网关只支持图片（`message.images`，且限定 png/jpeg/webp/gif），文件只能由宿主下发。
+本分支给协议加了 `files` 字段，走宿主官方的附件暂存接口，效果与 WebUI 拖拽上传等价：
+
+```
+App ──files[{name,data(base64)}]──▶ 网关 ──fileUploads/upload(agent 作用域)──▶ receiptId
+                                      └── session/prompt content: [{type:"file",receiptId}]
+```
+
+- 网关分支：`../dsh-gateway`（fork 自 0.10.3，commit `3b9f76b`；协议说明见其 `PROTOCOL.md`）
+- 部署：桌面 profile 以 `file:` 依赖链接该目录（`~/.dsh/profiles/desktop/package.json`），
+  重启 DSH 后生效；`hello.capabilities` 出现 `file-upload` 即表示已加载
+- 限制：≤10 个文件 / 单文件 8 MiB / 合计 24 MiB；`name` 会被宿主清洗为存储叶子名
+- App 侧：输入区回形针按钮（系统文件选择器、多选）、待发送文件条；网关未广播
+  `file-upload` 时按钮自动禁用并提示升级
+
 ## 实际部署架构（2026-10-20 落地）
 
 ```

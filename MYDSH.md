@@ -131,6 +131,44 @@ Xcode 若升级大版本，Metal Toolchain 需要重新下载。
 2. iPhone 装 TestFlight，用同一 Apple ID 登录，接受邀请后安装 Mydsh。
 3. 外部测试（分享给别人）需要 Beta App Review；本次已提交，等审核通过即可用公开链接。
 
+
+## 实际部署架构（2026-10-20 落地）
+
+```
+iPhone (Mydsh)
+   │  wss://mydsh.chrisapp.xyz:50006/mac/ws/mobile   ← 公网
+   ▼
+[服务器 123.185.223.220] openresty (1Panel, host 网络)
+   │  location ^~ /mac/ws/mobile → 127.0.0.1:13081（会重写回 /ws/mobile）
+   ▼
+SSH 反向隧道（Mac 上的 LaunchAgent xyz.chrisapp.mac-dsh-bridge 常驻，断线自动重连）
+   │  服务器 127.0.0.1:13081 → Mac 127.0.0.1:3081
+   ▼
+Mac 桌面版 DeepSeek Harness（profile=desktop，网关插件 0.10.3，persistent）
+```
+
+要点：
+
+- **网关必须跑在桌面 App 自己的进程里**（插件通过 profile `package.json` 的
+  `dsh.profile.bundles` 装载）。这样手机发起的回合使用桌面进程的
+  provider/插件（如 `glm-local` 由 `@deepseek-ai/dsh-llm-pi-ai` 提供），
+  且与桌面 UI 共享同一份会话写句柄。
+- 早期用独立 profile（`mobiletest`）跑网关会踩两个坑：
+  `session/writer-held`（会话被桌面进程占用）与
+  `no adapter registered for provider "glm-local"`（独立进程没有该 provider 插件）。
+  症状同源：**两个 DSH 进程共享同一份会话存储**。已废弃该做法。
+- 桌面 profile 不能用 `dsh plugin --profile desktop` 装（CLI 硬拒：
+  `managed exclusively by the Electron application`）。手工等价做法：
+  在该 profile 目录 `pnpm add dsh-plugin-mobile-gateway@0.10.3`，
+  再把 `dsh-plugin-mobile-gateway` 加到 `package.json` 的
+  `dsh.profile.bundles`，最后重启 App。
+- 服务器侧配置在 `/www/sites/mydsh/proxy/mac-ws.conf`（docker 内路径），
+  因目录属 root，需 `docker exec 1Panel-openresty-BsI1` 写入；
+  改完 `nginx -t && nginx -s reload`。
+- 隧道常驻：`~/Library/LaunchAgents/xyz.chrisapp.mac-dsh-bridge.plist`。
+- 局域网直连仍可用：`ws://192.168.1.100:3081/ws/mobile`（Mac 的 LAN IP 会变，
+  换网络后需重新配对）。
+
 ## 连接 DSH
 
 1. 在运行 DSH 的机器上安装并启用 `dsh-plugin-mobile-gateway@0.10.3+`。

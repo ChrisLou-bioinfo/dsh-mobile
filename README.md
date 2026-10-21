@@ -1,31 +1,40 @@
 <div align="center">
 
-**简体中文** · [English](README.en.md)
+**简体中文**
 
-<img src="Design/whale-girl-ios-app-promo-16x9-v3.png" alt="Whaleness iOS 应用展示" width="100%">
+# Mydsh
 
-# Whaleness（DeepSeek Harness 的第三方移动端应用）
+**DeepSeek Harness 的第三方 iOS 客户端（终端风格 · 本地网关直连）**
 
-**使用 Kotlin Multiplatform 共享核心逻辑，为 Android 与 iOS 提供原生移动端体验。**
+用手机连上你自己机器上的 DeepSeek Harness：实时对话、文件互传、HITL 审批、多网关切换、任务与定时任务，
+全部走你自建的 Mobile Gateway，不经过任何中转服务器。
 
-通过 Mobile Gateway 在手机、平板和折叠屏设备上访问 DeepSeek Harness 的工作区、实时对话、Agent 轨迹、插件、定时任务与文件。
-
-官方网站：[Whaleness](https://clarklevis1995.github.io/dsh-mobile/)
-
-<p>
-  <a href="https://testflight.apple.com/join/1Euwby6r"><img src="Docs/images/badges/testflight.svg" alt="加入 iOS TestFlight 公测" width="180" height="60"></a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/Clarklevis1995/dsh-mobile/releases"><img src="Docs/images/badges/android-github.svg" alt="从 GitHub Releases 下载 Android APK" width="180" height="60"></a>
-</p>
-
-![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?logo=kotlin&logoColor=white)
-![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
-![iOS 17+](https://img.shields.io/badge/iOS-17.0%2B-111827?logo=apple&logoColor=white)
-![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-4285F4?logo=jetpackcompose&logoColor=white)
-![SwiftUI](https://img.shields.io/badge/iOS-SwiftUI-F05138?logo=swift&logoColor=white)
-![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-2563EB)
+> **本项目基于上游开源项目 [Whaleness](https://github.com/Clarklevis1995/dsh-mobile)（作者 Chaofan Li，MIT 许可）修改而来。**
+> 上游为 Android 与 iOS 双端；本分支聚焦 iOS，重做了品牌与界面风格，并新增文件上传、Canvas 产物预览等能力。
+> 按 MIT 许可证要求，本仓库保留完整的版权与许可声明（见 [LICENSE](LICENSE)），应用内「设置 → 关于 → 开源许可」亦可查看。
 
 </div>
+
+## 与上游的差异
+
+| 方面 | 上游 Whaleness | 本项目 Mydsh |
+|---|---|---|
+| 平台 | Android + iOS | 仅 iOS（Android 端代码保留但不再维护） |
+| 品牌 | Whaleness / 鲸鱼标识 | Mydsh / 琥珀色 M 徽标 |
+| 视觉 | 深海渐变 + 毛玻璃 | 终端风格（近黑 + 等宽字 + 扁平描边） |
+| 首页 | 探索页 + 服务器下拉 | 极简首页，服务器在侧边栏管理 |
+| 文件 | 仅图片上传 | **支持任意文件上传**（走宿主官方附件暂存接口） |
+| 产物 | 轨迹页 | **Canvas 产物预览**（HTML 以浏览器方式渲染） |
+| 后台保活 | 定位 + 静音音频 | 仅静音音频（不使用定位权限） |
+
+## 致谢与许可
+
+- 上游项目：[Clarklevis1995/dsh-mobile](https://github.com/Clarklevis1995/dsh-mobile)，作者 **Chaofan Li**，MIT License
+- 上游移动网关：[Clarklevis1995/dsh-plugin-mobile-gateway](https://github.com/Clarklevis1995/dsh-plugin-mobile-gateway)，MIT License
+- 宿主平台：[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，MIT License
+- 第三方组件声明见 [Docs/third-party-notices.md](Docs/third-party-notices.md)
+
+本仓库代码同样以 MIT 许可证发布。上游版权声明保留在 [LICENSE](LICENSE) 中，未作任何删改。
 
 ## 项目简介
 

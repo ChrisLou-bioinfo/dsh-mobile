@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var pendingPermission: DefaultPermissionChoice?
     @State private var observedGatewayState: ConnectionState?
     @State private var showsPrivacyPolicy = false
+    @State private var showsLicenses = false
     @State private var showsReleaseNotes = false
     @AppStorage(AppFontScale.key) private var fontScale = 1.0
     @AppStorage(AppFontScale.followsSystemKey) private var fontFollowsSystem = false
@@ -238,6 +239,7 @@ struct SettingsView: View {
                     repository: "dsh-plugin-mobile-gateway", version: connectedGatewayVersion)
                 Button("本版本新功能") { showsReleaseNotes = true }
                 Button("隐私政策") { showsPrivacyPolicy = true }
+                Button("开源许可") { showsLicenses = true }
             }
         }
         .navigationTitle("设置")
@@ -280,6 +282,9 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showsLicenses) {
+            OpenSourceLicensesSheet()
         }
         .sheet(isPresented: $showsPrivacyPolicy) {
             PrivacyPolicySheet()
@@ -955,5 +960,82 @@ private struct BundledAppReleaseInfo: Decodable {
               let notes = try? String(contentsOf: notesURL, encoding: .utf8) else { return nil }
         info.notes = notes
         return info
+    }
+}
+
+
+/// MIT 许可要求随二进制分发时附带版权与许可声明，这里集中展示上游与依赖的声明。
+private struct OpenSourceLicensesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private static let upstreamNotice = """
+    Mydsh（原名 Whaleness）是 DeepSeek Harness 的第三方移动端客户端，基于上游开源项目修改而来。
+    本项目保留上游 MIT 许可证与版权声明，并按 MIT 条款分发。
+
+    上游项目：Whaleness / dsh-mobile
+    作者：Chaofan Li
+    仓库：https://github.com/Clarklevis1995/dsh-mobile
+    许可证：MIT
+
+    上游版权声明：
+    MIT License
+
+    Copyright (c) 2026 Chaofan Li
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    """
+
+    private static let bundledDependencies = """
+    本应用还包含以下第三方组件，均按其各自许可证分发：
+    · DeepSeek Harness WebUI 图标 — MIT，https://github.com/deepseek-ai/deepseek-harness
+    · swift-markdown-ui — MIT，https://github.com/gonzalezreal/swift-markdown-ui
+    · Kotlin Multiplatform 标准库与协程 — Apache License 2.0，https://kotlinlang.org
+    完整声明见仓库 Docs/third-party-notices.md。
+    """
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    section("上游与许可证", Self.upstreamNotice)
+                    section("第三方组件", Self.bundledDependencies)
+                }
+                .padding(20)
+            }
+            .navigationTitle("开源许可")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func section(_ title: String, _ body: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).appFont(.headline)
+            Text(body)
+                .appFont(.footnote.monospaced())
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }

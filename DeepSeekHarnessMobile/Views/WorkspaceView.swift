@@ -49,6 +49,17 @@ struct WorkspaceView: View {
                     safeArea: geometry.safeAreaInsets,
                     drawerWidth: drawerWidth
                 )
+                .overlay(alignment: .bottomTrailing) {
+                    if ProcessInfo.processInfo.environment["MYDSH_DEBUG_LAYOUT"] == "1" {
+                        Text("W \(Int(geometry.size.width)) H \(Int(geometry.size.height)) | safe L\(Int(geometry.safeAreaInsets.leading)) R\(Int(geometry.safeAreaInsets.trailing))")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .padding(5)
+                            .background(Color.green)
+                            .foregroundStyle(.black)
+                            .allowsHitTesting(false)
+                            .padding(6)
+                    }
+                }
                     .frame(width: geometry.size.width, height: fullHeight)
                     .background(DSHColor.navy)
                     .overlay {
@@ -170,6 +181,7 @@ struct WorkspaceView: View {
         let usesColumns = AdaptiveLayout.workspaceUsesColumns(
             size: size, accessibilityText: dynamicTypeSize.isAccessibilitySize
         )
+        let _ = debugLayoutLog(size: size, safeArea: safeArea, usesColumns: usesColumns)
         return ZStack {
             DeepOceanBackground()
                 .contentShape(Rectangle())
@@ -192,8 +204,10 @@ struct WorkspaceView: View {
                     }
                 }
                 .padding(.horizontal, usesColumns ? 40 : 22)
-                .padding(.leading, safeArea.leading)
-                .padding(.trailing, safeArea.trailing)
+                // iPhone Duo 等折叠设备会把侧边预留为系统竖排栏区域；尊重它但只留少量呼吸，
+                // 避免可用宽度被整体吃掉一块。
+                .padding(.leading, min(safeArea.leading, 16))
+                .padding(.trailing, min(safeArea.trailing, 16))
                 .padding(.top, safeArea.top + 18)
                 .padding(.bottom, safeArea.bottom + 24)
                 .readableContentWidth(AdaptiveLayout.workspaceWidth)
@@ -223,6 +237,12 @@ struct WorkspaceView: View {
         // layer. Keep a container-level fallback; controls retain their own
         // actions and the search field consumes its tap while becoming focused.
         .onTapGesture { sessionSearchIsFocused = false }
+    }
+
+    private func debugLayoutLog(size: CGSize, safeArea: EdgeInsets, usesColumns: Bool) {
+        guard ProcessInfo.processInfo.environment["MYDSH_DEBUG_LAYOUT"] == "1" else { return }
+        let screen = UIScreen.main.bounds.size
+        print("[MYDSH-LAYOUT] container=\(Int(size.width))x\(Int(size.height)) screen=\(Int(screen.width))x\(Int(screen.height)) safe=(\(Int(safeArea.leading)),\(Int(safeArea.trailing))) columns=\(usesColumns)")
     }
 
     private var workspaceActions: some View {

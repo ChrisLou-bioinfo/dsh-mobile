@@ -167,7 +167,9 @@ enum AdaptiveLayout {
     static let workspaceWidth: CGFloat = 1_440
 
     static func workspaceUsesColumns(size: CGSize, accessibilityText: Bool = false) -> Bool {
-        size.width >= 900 && size.height >= 500 && !accessibilityText
+        // 820pt 起分栏：覆盖 iPad 竖屏与 iPhone Duo 展开态（实测内屏容器约 867pt），
+        // 让折叠设备直接用上双栏，而不是把手机布局拉宽。
+        size.width >= 820 && size.height >= 500 && !accessibilityText
     }
 
     static func horizontalInset(width: CGFloat, maximumWidth: CGFloat) -> CGFloat {

@@ -50,7 +50,26 @@
 - **工具限制**：`simctl` 没有旋转/fold 命令，姿态切换必须在 DeviceHub 界面里点；
   且模拟器闲置后屏幕会熄灭，截图会得到全黑图，需要先重新 boot 或唤起 DeviceHub 才能截到内容。
 
-## 六、后续待办（需要在真机或 DeviceHub 交互验证）
+## 六、实测数据与修复（2026-10-21）
+
+在 iPhone Duo 模拟器（内屏展开态）上通过 `MYDSH_DEBUG_LAYOUT=1` 打印真实容器尺寸：
+
+```
+container=867x611  screen=466x678  safe=(0,84)  columns=false   ← 修复前
+container=867x635  screen=466x678  safe=(0,84)  columns=true    ← 修复后
+```
+
+结论与处理：
+
+1. **App 窗口本身是铺满的**（容器 867pt ≈ 内屏可用宽度）；`UIScreen.main.bounds` 在该姿态下返回 466x678，**不可用作布局依据**（已确认我们没有依赖它做布局）。
+2. 右侧"少一块"来自系统在 **trailing 侧预留 84pt** 给竖排状态栏/工具栏区域。
+   原先我们按 `safeArea.trailing` 全额避让，导致可用宽度被吃掉；现改为最多 16pt 呼吸，**收回约 68pt**。
+3. 原分栏阈值 900pt 大于 867pt，导致折叠设备仍用手机单列布局、观感很挤。
+   现将阈值降到 **820pt**（覆盖 iPad 竖屏与 Duo 展开态），折叠设备直接用双栏。
+
+对应改动：`AdaptiveLayout.workspaceUsesColumns` 阈值 900→820；`workspaceContent` 侧边安全区封顶 16pt。
+
+## 七、后续待办（需要在真机或 DeviceHub 交互验证）
 
 - [ ] 内屏展开态、半折叠态下逐页检查（尤其是输入框、侧边栏、Canvas 右滑页是否落在折痕上）
 - [ ] 外屏闭合态可用性（搜索、新建会话、扫码配对流程）
@@ -58,7 +77,7 @@
 - [ ] 评估 `UIArrangementViewController`：若半折叠时希望"上/下分区"呈现（如上半对话、下半输入），它是官方推荐路径
 - [ ] 若系统竖排工具栏普及，可把部分自绘 header 迁到 `NavigationStack.toolbar`
 
-## 七、验证方法
+## 八、验证方法
 
 ```bash
 # 本机已有 iPhone Duo 模拟器类型

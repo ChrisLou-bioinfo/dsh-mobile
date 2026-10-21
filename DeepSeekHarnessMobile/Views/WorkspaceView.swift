@@ -203,12 +203,11 @@ struct WorkspaceView: View {
                         recentSessions
                     }
                 }
-                .padding(.horizontal, usesColumns ? 40 : 22)
-                // iPhone Duo 等折叠设备会把侧边预留为系统竖排栏（状态栏/工具栏）区域。
-                // 容器尺寸已扣除该区域；这里再把它收回来使用，只保留 16pt 呼吸，
-                // 否则折叠态可用宽度会被白白吃掉一条。
-                .padding(.leading, min(safeArea.leading, 16))
-                .padding(.trailing, -max(0, safeArea.trailing - 16))
+                // 折叠设备（iPhone Duo）会把一侧留给系统竖排栏，容器宽度已扣除它。
+                // 我们不越过该区域（否则会被 wifi/时间图标压住），但为了视觉居中，
+                // 在另一侧补上等量留白，让内容块落在屏幕的中间而不是贴左。
+                .padding(.horizontal, usesColumns ? 16 : 22)
+                .padding(.leading, max(0, (safeArea.trailing - safeArea.leading) / 2))
                 .padding(.top, safeArea.top + 18)
                 .padding(.bottom, safeArea.bottom + 24)
                 .readableContentWidth(AdaptiveLayout.workspaceWidth)

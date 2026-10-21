@@ -204,13 +204,25 @@ struct WorkspaceView: View {
                     }
                 }
                 .padding(.horizontal, usesColumns ? 40 : 22)
-                // iPhone Duo 等折叠设备会把侧边预留为系统竖排栏区域；尊重它但只留少量呼吸，
-                // 避免可用宽度被整体吃掉一块。
+                // iPhone Duo 等折叠设备会把侧边预留为系统竖排栏（状态栏/工具栏）区域。
+                // 容器尺寸已扣除该区域；这里再把它收回来使用，只保留 16pt 呼吸，
+                // 否则折叠态可用宽度会被白白吃掉一条。
                 .padding(.leading, min(safeArea.leading, 16))
-                .padding(.trailing, min(safeArea.trailing, 16))
+                .padding(.trailing, -max(0, safeArea.trailing - 16))
                 .padding(.top, safeArea.top + 18)
                 .padding(.bottom, safeArea.bottom + 24)
                 .readableContentWidth(AdaptiveLayout.workspaceWidth)
+                .background {
+                    if ProcessInfo.processInfo.environment["MYDSH_DEBUG_LAYOUT"] == "1" {
+                        GeometryReader { proxy in
+                            Color.clear
+                                .onAppear { logContentFrame(proxy.size, container: size, safeArea: safeArea) }
+                                .onChange(of: proxy.size) { _, newSize in
+                                    logContentFrame(newSize, container: size, safeArea: safeArea)
+                                }
+                        }
+                    }
+                }
                 .background {
                     DrawerPanGestureAttachment(
                         shouldBegin: { translation in
@@ -237,6 +249,10 @@ struct WorkspaceView: View {
         // layer. Keep a container-level fallback; controls retain their own
         // actions and the search field consumes its tap while becoming focused.
         .onTapGesture { sessionSearchIsFocused = false }
+    }
+
+    private func logContentFrame(_ frame: CGSize, container: CGSize, safeArea: EdgeInsets) {
+        print("[MYDSH-FRAME] content=\(Int(frame.width))x\(Int(frame.height)) container=\(Int(container.width))x\(Int(container.height)) safe=(\(Int(safeArea.leading)),\(Int(safeArea.trailing)))")
     }
 
     private func debugLayoutLog(size: CGSize, safeArea: EdgeInsets, usesColumns: Bool) {

@@ -67,7 +67,12 @@ container=867x635  screen=466x678  safe=(0,84)  columns=true    ← 修复后
 3. 原分栏阈值 900pt 大于 867pt，导致折叠设备仍用手机单列布局、观感很挤。
    现将阈值降到 **820pt**（覆盖 iPad 竖屏与 Duo 展开态），折叠设备直接用双栏。
 
-对应改动：`AdaptiveLayout.workspaceUsesColumns` 阈值 900→820；`workspaceContent` 侧边安全区封顶 16pt。
+对应改动（已在模拟器上验证可用）：
+
+- `AdaptiveLayout.workspaceUsesColumns` 阈值 900→820（折叠/内屏直接进双栏，不再把手机布局拉宽）
+- **不越过系统竖排栏区域**（越过会被 wifi/时间图标压住、被右边框裁切）
+- 改为在另一侧补等量留白，使内容块在屏幕上**视觉居中**；仅在系统确实预留侧边的姿态下生效
+- 保留 `MYDSH_DEBUG_LAYOUT=1` 调试日志（打印容器/安全区/内容框），便于按姿态微调
 
 ## 七、后续待办（需要在真机或 DeviceHub 交互验证）
 

@@ -24,7 +24,7 @@ struct SettingsView: View {
 
     private func openRelease(_ repository: String, version: String?) {
         Task {
-            let root = URL(string: "https://github.com/Clarklevis1995/\(repository)")!
+            let root = URL(string: "https://github.com/ChrisLou-bioinfo/\(repository)")!
             let fallback = repository == "dsh-mobile" ? root.appendingPathComponent("releases") : root
             guard let version, !version.isEmpty else { openURL(fallback); return }
             let tag = version.hasPrefix("v") ? version : "v\(version)"
@@ -420,7 +420,7 @@ private struct PrivacyPolicySheet: View {
     @State private var loadFailed = false
     @State private var reloadID = UUID()
 
-    private let url = URL(string: "https://clarklevis1995.github.io/dsh-mobile/privacy/")!
+    private let url = URL(string: "https://chrislou-bioinfo.github.io/dsh-mobile/privacy/")!
 
     var body: some View {
         NavigationStack {

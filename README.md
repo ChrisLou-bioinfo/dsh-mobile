@@ -70,13 +70,15 @@ Whaleness 是独立开发的 DeepSeek Harness 第三方原生移动客户端。�
 - **原生实时对话**：处理 WebSocket 增量事件，展示 Markdown、代码、思考过程、工具调用、工具结果与图片附件。
 - **语音与文字输入**：切换到独立的“按住说话”区域，松手转写为可编辑草稿，上滑取消；语音转写通过主机上的语音输入能力完成。
 - **历史、队列与命令**：分页加载历史记录时合并实时尾部并去重；查看和编辑排队消息，通过斜杠命令调用主机提供的能力。iOS 加载更早记录时保留当前阅读位置。
-- **完整 Agent 轨迹**：查看 User、Assistant、Tool 等事件，以及调用参数、结果、Schema、Token 和耗时信息。
+- **Canvas 产物预览**：对话右滑页汇总本会话 `present` 交付的文件，点击即下载预览；HTML 产物用 WKWebView 以浏览器方式渲染。
+- **原始轨迹**：User、Assistant、Tool 等事件与调用参数、结果、Token、耗时仍完整保留在事件流中（本分支不再单独占用一页）。
 - **交互式 Agent 流程**：支持 Human Question 与工具审批请求，可提交、取消、拒绝或单次允许。
 
 ### 主机、工作区与扩展
 
 - **多主机与会话管理**：保存并切换多个 Gateway 主机，分别管理认证信息；浏览、创建和切换工作区，搜索、创建、切换及归档会话。
-- **文件卡片与预览**：直接打开对话中的文件卡片，浏览远端目录，分块下载并校验完整性；预览 PDF、图片和代码，或交给系统分享与打开。
+- **文件卡片与预览**：直接打开对话中的文件卡片，浏览远端目录，分块下载并校验完整性；预览 PDF、图片、代码与 HTML，或交给系统分享与打开。
+- **任意文件上传**：输入区可发送任意文件（≤10 个 / 单文件 8 MiB / 合计 24 MiB），经宿主官方附件暂存接口落为真实附件，与 WebUI 拖拽上传等价。
 - **Markdown 源码 / 预览**：代码预览支持语法高亮、行号和长行横向滚动；Markdown 文件可切换源码与渲染视图，并保留各自的阅读位置。
 - **插件管理**：查看官方及已安装插件、详情和运行状态，按主机支持的能力安装、启用、停用和配置插件。
 - **定时任务**：查看会话创建的定时任务，搜索和筛选任务，展开查看规则、下次执行时间及投递记录，并编辑或删除任务。
@@ -84,131 +86,35 @@ Whaleness 是独立开发的 DeepSeek Harness 第三方原生移动客户端。�
 
 ### 原生设备体验
 
-- **大屏与折叠屏适配**：iPad、Android 平板和折叠屏根据可用窗口尺寸调整布局；宽屏首页使用分栏，会话保持合适的阅读宽度，文件预览随窗口伸缩。Android 布局会考虑折叠铰链占用的区域。
-- **主题与字体大小**：浅色、深色主题，以及跟随系统或手动调整的应用字体大小；保留 Harness 的深海、网格与鲸鱼视觉语言。
+- **大屏适配**：iPad 按可用窗口尺寸调整布局，宽屏首页使用分栏并保持阅读宽度。（Android 端代码保留但本分支不再维护。）
+- **终端风格主题**：近黑背景、细网格、全站等宽字体、扁平描边面板；强制深色外观，不使用毛玻璃与重投影。
 - **iOS 实时活动与通知**：在锁屏和支持的灵动岛设备上查看任务进展、审批与完成状态，重要进展可通过系统通知提醒。
 - **安全设备配对**：扫描 WebUI 二维码或手动输入配对信息；长期凭据保存到平台安全存储。
-- **移动端生命周期**：两端进入后台均不主动关闭健康连接，断线后回到前台自动恢复；手动断开不自动重连。Android 仅在 Agent 回合执行期间使用前台服务，空闲连接不启动前台服务；iOS 使用系统授予的有限后台执行时间管理活动任务，不保证无限期维持 WebSocket。
+- **移动端生命周期**：进入后台不主动关闭健康连接，断线后回到前台自动恢复；手动断开不自动重连。iOS 使用静音音频延长后台执行时间（**不使用定位权限**），不保证无限期维持 WebSocket。
 
 ## 界面预览
 
-> 截图来自 iOS 版本；Android 使用 Jetpack Compose 实现相应的信息架构和核心流程。新增的语音、文件、字体及 iPad 截图拍摄于 2026 年 10 月 16 日（1.7.6），素材来源见[截图说明](Docs/images/screenshots/2026-10/SOURCES.md)。
-
-### 语音输入、文件预览与字体
+> 以下截图来自本项目当前版本（Mydsh，终端风格）。上游 Whaleness 的旧截图已不再引用。
 
 <table>
   <tr>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/2026-10/voice-input.png" alt="iPhone 按住说话时的语音录入浮层" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/2026-10/pdf-preview.png" alt="从对话文件卡片打开 PDF 预览" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/2026-10/font-size.png" alt="应用字体大小预览与滑块设置" width="100%"></td>
+    <td width="33.33%" align="center"><img src="Docs/images/screenshots/mydsh/home.png" alt="Mydsh 首页：品牌标语、工作区与最近会话" width="100%"></td>
+    <td width="33.33%" align="center"><img src="Docs/images/screenshots/mydsh/conversation.jpg" alt="Mydsh 对话页：等宽字排版与输入区" width="100%"></td>
+    <td width="33.33%" align="center"><img src="Docs/images/screenshots/mydsh/drawer.png" alt="Mydsh 侧边栏：服务器列表、插件、定时任务、设置与扫码连接" width="100%"></td>
   </tr>
   <tr>
-    <td align="center"><strong>按住说话</strong><br>松手转写，上滑取消</td>
-    <td align="center"><strong>PDF 预览</strong><br>从对话直接查看文件</td>
-    <td align="center"><strong>字体大小</strong><br>跟随系统或手动调整</td>
+    <td align="center"><strong>首页</strong><br>靠近黑底 + 琥珀强调</td>
+    <td align="center"><strong>对话</strong><br>等宽字排版，输入区单入口附件</td>
+    <td align="center"><strong>侧边栏</strong><br>多网关切换、扫码连接</td>
   </tr>
 </table>
 
-[查看上滑取消状态](Docs/images/screenshots/2026-10/voice-cancel.png)
+**设计要点**
 
-### iPad 与大屏
-
-<table>
-  <tr>
-    <td width="50%" align="center"><img src="Docs/images/screenshots/2026-10/ipad-home.png" alt="iPad 首页的工作区与最近会话双栏布局" width="100%"></td>
-    <td width="50%" align="center"><img src="Docs/images/screenshots/2026-10/ipad-conversation.png" alt="iPad 横屏对话和文件卡片" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>宽屏首页</strong><br>工作区与会话分栏展示</td>
-    <td align="center"><strong>大屏对话</strong><br>舒适的内容宽度与输入区域</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="Docs/images/screenshots/2026-10/ipad-pdf-preview.png" alt="iPad 对话中的 PDF 预览窗口" width="100%"></td>
-    <td align="center"><img src="Docs/images/screenshots/2026-10/ipad-voice-input.png" alt="适配 iPad 横屏的语音输入浮层" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>文件预览</strong><br>保留对话上下文</td>
-    <td align="center"><strong>大屏语音输入</strong><br>录音反馈随窗口尺寸适配</td>
-  </tr>
-</table>
-
-### 核心体验
-
-<table>
-  <tr>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/home.png" alt="iOS 工作区首页" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/2026-10/file-card.png" alt="iOS 对话中的文件卡片与执行统计入口" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/trajectory-light.png" alt="iOS 浅色模式轨迹" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>工作区首页</strong><br>工作区与最近会话</td>
-    <td align="center"><strong>对话</strong><br>Markdown、代码与工具结果</td>
-    <td align="center"><strong>轨迹</strong><br>时间概览与事件时间线</td>
-  </tr>
-</table>
-
-### 默认配置
-
-<table>
-  <tr>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/settings.png" alt="iOS 应用设置" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/agent-presets.png" alt="iOS Agent 预设" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/default-model.png" alt="iOS 默认模型" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>设置</strong><br>部署默认值与 Gateway 状态</td>
-    <td align="center"><strong>Agent 预设</strong><br>工具、提示词与能力组合</td>
-    <td align="center"><strong>默认模型</strong><br>Provider、模型与思考等级</td>
-  </tr>
-</table>
-
-### 插件与定时任务
-
-<table>
-  <tr>
-    <td width="50%" align="center"><img src="website/assets/plugins.webp" alt="iOS 官方与已安装插件列表" width="100%"></td>
-    <td width="50%" align="center"><img src="website/assets/tasks.webp" alt="iOS 定时任务规则与详情" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>插件管理</strong><br>查看详情与启用状态</td>
-    <td align="center"><strong>定时任务</strong><br>查看计划与执行情况</td>
-  </tr>
-</table>
-
-<details>
-<summary>更多界面：工作区、轨迹详情与设备配对</summary>
-
-### 工作区操作与轨迹详情
-
-<table>
-  <tr>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/workspace-switcher.png" alt="iOS 切换工作区" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/workspace-directory-picker.png" alt="iOS 选择工作区目录" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/trajectory-detail-light.png" alt="iOS 轨迹详情面板" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>切换工作区</strong><br>快速访问不同项目</td>
-    <td align="center"><strong>目录选择</strong><br>浏览并创建工作区</td>
-    <td align="center"><strong>轨迹详情</strong><br>摘要、Token 与内容预览</td>
-  </tr>
-</table>
-
-### 浅色、深色与设备配对
-
-<table>
-  <tr>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/pairing-light.png" alt="iOS 浅色模式设备认证" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/pairing-dark.png" alt="iOS 深色模式设备认证" width="100%"></td>
-    <td width="33.33%" align="center"><img src="Docs/images/screenshots/conversation-dark.png" alt="iOS 深色模式对话" width="100%"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>浅色配对</strong><br>扫码或手动输入</td>
-    <td align="center"><strong>深色配对</strong><br>完整深色模式适配</td>
-    <td align="center"><strong>深色对话</strong><br>阅读、代码与输入面板</td>
-  </tr>
-</table>
-
-</details>
+- 终端风格：近黑背景、细网格、等宽字体、扁平描边面板，不使用毛玻璃与重投影
+- 首页只保留「品牌 + 标语 + 工作区 + 新建会话 + 最近会话」，服务器切换统一收进侧边栏
+- 附件入口合并为单一「+」，避免图片与文件两个按钮并列
+- 不使用定位权限；后台保活仅依赖静音音频
 
 ## 跨端架构
 

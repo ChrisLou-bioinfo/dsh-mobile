@@ -363,6 +363,7 @@ struct ConversationView: View {
     @State private var pendingFiles: [GatewayOutgoingFile] = []
     @State private var isImportingFiles = false
     @State private var showsFileImporter = false
+    @State private var showsPhotoPicker = false
     @State private var showsContextUsage = false
     @State private var showsModelPicker = false
     @State private var showsSessionStats = false
@@ -401,10 +402,11 @@ struct ConversationView: View {
                 PersistentSessionPager(selection: $activeView) {
                     chat
                 } trajectory: {
-                    TrajectoryView(
-                        sessionId: store.selectedSessionId,
-                        timeline: store.trajectoryTimeline(for: store.selectedSessionId),
-                        isActive: activeView == 1
+                    // 第二页改为 Canvas：本会话生成文件的预览面板。
+                    CanvasView(
+                        files: canvasFiles,
+                        gatewayConnected: store.gateway.state.isConnected,
+                        onOpen: openCanvasFile
                     )
                 }
             }
@@ -1125,9 +1127,7 @@ struct ConversationView: View {
     @ViewBuilder
     private var composerButtonsRow: some View {
         HStack(spacing: 7) {
-            AnyView(composerPhotoButton)
-
-            AnyView(composerFileButton)
+            AnyView(composerAttachmentButton)
 
             AnyView(permissionControl)
 
@@ -1152,26 +1152,69 @@ struct ConversationView: View {
         }
     }
 
-    private var composerPhotoButton: some View {
-        PhotosPicker(
-            selection: $selectedPhotoItems,
-            maxSelectionCount: max(1, 20 - pendingImages.count),
-            matching: .images
-        ) {
+    /// 图片与文件合并成一个入口，避免输入区放两个几乎同义的按钮。
+    /// 本会话中 `present` 产生的文件（去重、按出现顺序）。
+    private var canvasFiles: [PresentedFile] {
+        var seen = Set<String>()
+        var result: [PresentedFile] = []
+        for item in store.selectedConversationItems {
+            for file in item.files where !file.path.isEmpty {
+                if seen.insert(file.path).inserted { result.append(file) }
+            }
+        }
+        return result
+    }
+
+    private func openCanvasFile(_ path: String) {
+        guard let sessionId = store.selectedSessionId, store.supportsFileDownloads else {
+            store.lastError = String(localized: "当前网关不支持文件预览，请升级网关。")
+            return
+        }
+        store.openConversationFile(gatewayID: store.gatewayLocalID, sessionID: sessionId, path: path)
+    }
+
+    private var composerAttachmentButton: some View {
+        Menu {
+            Button {
+                showsPhotoPicker = true
+            } label: {
+                Label("照片", systemImage: "photo.on.rectangle.angled")
+            }
+            .disabled(!store.supportsImages || pendingImages.count >= 20)
+
+            Button {
+                showsFileImporter = true
+            } label: {
+                Label("文件", systemImage: "doc.badge.plus")
+            }
+            .disabled(!store.supportsFiles || pendingFiles.count >= 8)
+        } label: {
             Group {
-                if isImportingImages {
+                if isImportingImages || isImportingFiles {
                     ProgressView().controlSize(.small)
                 } else {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .appFont(.system(size: 16, weight: .semibold))
+                    Image(systemName: "plus.circle")
+                        .appFont(.system(size: 17, weight: .semibold))
                 }
             }
             .frame(width: 32, height: 32)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .disabled(!store.supportsImages || pendingImages.count >= 20 || isImportingImages)
-        .accessibilityLabel(store.supportsImages ? String(localized: "添加图片") : String(localized: "当前网关不支持图片"))
+        .disabled(attachmentEntryDisabled)
+        .accessibilityLabel(String(localized: "添加图片或文件"))
+        .photosPicker(
+            isPresented: $showsPhotoPicker,
+            selection: $selectedPhotoItems,
+            maxSelectionCount: max(1, 20 - pendingImages.count),
+            matching: .images
+        )
+    }
+
+    private var attachmentEntryDisabled: Bool {
+        isImportingImages || isImportingFiles
+            || (!store.supportsImages && !store.supportsFiles)
+            || (pendingImages.count >= 20 && pendingFiles.count >= 8)
     }
 
     private var composerFileButton: some View {
@@ -4799,5 +4842,132 @@ private struct ModelPickerSheet: View {
             }
         }
         .contentShape(Rectangle())
+    }
+}
+
+/// Canvas：对话右滑页，列出本会话生成的文件并支持预览。
+/// 空态明确说明"还没有产物"，避免用户以为页面坏了。
+private struct CanvasView: View {
+    let files: [PresentedFile]
+    let gatewayConnected: Bool
+    let onOpen: (String) -> Void
+
+    private var reversedFiles: [PresentedFile] { files.reversed() }
+
+    var body: some View {
+        ZStack {
+            DSHColor.navy.ignoresSafeArea()
+            DeepOceanBackground()
+                .ignoresSafeArea()
+                .opacity(0.55)
+            VStack(spacing: 0) {
+                header
+                if files.isEmpty {
+                    emptyState
+                } else {
+                    fileList
+                }
+            }
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Text("Canvas")
+                .appFont(.headline.weight(.semibold))
+            Text("\(files.count)")
+                .appFont(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            if !gatewayConnected {
+                Text("未连接")
+                    .appFont(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "square.on.square.dashed")
+                .appFont(.system(size: 30, weight: .light))
+                .foregroundStyle(.secondary)
+            Text("还没有生成的文件")
+                .appFont(.subheadline.weight(.medium))
+            Text("Agent 用 present 交付文件后，会出现在这里。")
+                .appFont(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+        .padding(.bottom, 60)
+    }
+
+    private var fileList: some View {
+        ScrollView {
+            LazyVStack(spacing: 8) {
+                ForEach(reversedFiles, id: \.path) { file in
+                    Button { onOpen(file.path) } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: symbol(for: file.path))
+                                .appFont(.system(size: 17, weight: .medium))
+                                .foregroundStyle(DSHColor.ocean)
+                                .frame(width: 26)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(displayName(file.path))
+                                    .appFont(.subheadline.weight(.medium))
+                                    .lineLimit(1)
+                                if let description = file.description, !description.isEmpty {
+                                    Text(description)
+                                        .appFont(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                } else {
+                                    Text(file.path)
+                                        .appFont(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .appFont(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(DSHColor.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private func displayName(_ path: String) -> String {
+        (path as NSString).lastPathComponent
+    }
+
+    private func symbol(for path: String) -> String {
+        switch (path as NSString).pathExtension.lowercased() {
+        case "html", "htm": "globe"
+        case "md", "markdown": "doc.richtext"
+        case "png", "jpg", "jpeg", "gif", "webp", "heic": "photo"
+        case "pdf": "doc.richtext"
+        case "csv", "xlsx", "xls": "tablecells"
+        case "json", "yaml", "yml", "toml": "curlybraces"
+        case "swift", "kt", "py", "js", "ts", "sh", "r", "m": "chevron.left.forwardslash.chevron.right"
+        default: "doc"
+        }
     }
 }

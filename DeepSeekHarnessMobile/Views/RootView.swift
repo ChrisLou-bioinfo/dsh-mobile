@@ -1,5 +1,6 @@
 import SwiftUI
 import QuickLook
+import WebKit
 import UIKit
 import DeepSeekHarnessShared
 
@@ -1199,8 +1200,11 @@ struct WorkspaceFilePreview: View {
 
     private var previewContent: some View {
         Group {
-            if !usesSystemPreview,
-               WorkspaceCodePreviewSupport.shared.isSupported(name: file.name, mediaType: file.mediaType) {
+            if !usesSystemPreview, Self.isHTMLFile(file) {
+                // HTML 产物按浏览器方式渲染，脚本与相对资源均可用。
+                WorkspaceHTMLPreview(url: file.url)
+            } else if !usesSystemPreview,
+                      WorkspaceCodePreviewSupport.shared.isSupported(name: file.name, mediaType: file.mediaType) {
                 WorkspaceCodePreview(file: file, onOpenSystem: { usesSystemPreview = true })
             } else {
                 WorkspaceQuickLookPreview(url: file.url)
@@ -1210,6 +1214,39 @@ struct WorkspaceFilePreview: View {
         .ignoresSafeArea(.container, edges: .bottom)
     }
 
+}
+
+extension WorkspaceFilePreview {
+    /// HTML/HTM 走 WKWebView，避免 QuickLook 把页面当纯文本展示。
+    static func isHTMLFile(_ file: WorkspaceLocalFile) -> Bool {
+        let ext = (file.name as NSString).pathExtension.lowercased()
+        if ext == "html" || ext == "htm" { return true }
+        return file.mediaType.lowercased() == "text/html"
+            || file.mediaType.lowercased().hasPrefix("application/xhtml")
+    }
+}
+
+/// 以浏览器方式预览本地 HTML 产物：允许读取同目录资源，禁用手势缩放以外的额外控件。
+private struct WorkspaceHTMLPreview: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.allowsBackForwardNavigationGestures = true
+        webView.scrollView.contentInsetAdjustmentBehavior = .always
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        }
+    }
 }
 
 struct WorkspaceFilePreviewHeader: View {

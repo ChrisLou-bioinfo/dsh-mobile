@@ -2,6 +2,16 @@ import SwiftUI
 import Combine
 
 /// 每次切换创建全新的业务容器。资料 ID 是持久化、凭证和缓存的共同命名空间。
+/// App Store 审核用演示环境：内置一个只读演示网关的长期 token，
+/// 审核员无需配对即可看到真实界面与功能（Apple 明确接受 demonstration mode）。
+enum DemoGateway {
+    static let endpoint = "wss://mydsh.chrisapp.xyz:50006/dsh/ws/mobile"
+    static let token = "pNI1L2JcQ0mJ5vC-ajxwlPh83cYV0fEggM9xESAs2fM"
+    static let gatewayId = "61520177-8163-4e2e-babe-71c205cfd9a4"
+    static let name = "Mydsh 演示环境"
+    static let profileID = "demo0000-0000-4000-8000-000000000001"
+}
+
 @MainActor
 final class MultiGatewayStore: ObservableObject {
     @Published private(set) var profiles: [GatewayProfile] = []
@@ -176,6 +186,41 @@ final class MultiGatewayStore: ObservableObject {
         normalized.publicUrl = endpoints[0]
         store.allowAutomaticConnection()
         store.gateway.connectForPairing(normalized)
+    }
+
+    /// 一键进入演示环境：写入内置 token 并连接，无需扫码。
+    func connectDemo() {
+        error = nil
+        let endpoints = [DemoGateway.endpoint]
+        var profile = profiles.first { $0.id == DemoGateway.profileID }
+            ?? GatewayProfile(
+                id: DemoGateway.profileID,
+                gatewayId: DemoGateway.gatewayId,
+                gatewayName: DemoGateway.name,
+                endpoints: endpoints,
+                preferredEndpoint: DemoGateway.endpoint
+            )
+        profile.gatewayId = DemoGateway.gatewayId
+        profile.gatewayName = DemoGateway.name
+        profile.endpoints = endpoints
+        profile.preferredEndpoint = DemoGateway.endpoint
+        if !profiles.contains(where: { $0.id == profile.id }) { profiles.append(profile) }
+        persist()
+
+        let store = makeStore(profile)
+        do {
+            try store.gateway.saveCredential(DemoGateway.token, for: DemoGateway.endpoint)
+        } catch {
+            self.error = error.localizedDescription
+            return
+        }
+        activeStore.deactivateGateway()
+        activeID = profile.id
+        activeStore = store
+        defaults.set(profile.id, forKey: "gateway.activeID")
+        store.allowAutomaticConnection()
+        store.gateway.connect(to: DemoGateway.endpoint)
+        observeActive()
     }
 
     private func acceptIdentity(_ frame: GatewayFrame, store: AppStore) {

@@ -163,6 +163,12 @@ final class GatewayClient: ObservableObject {
         return GatewayTokenStore.load(for: credentialURL(url))?.isEmpty == false
     }
 
+    /// 演示模式等场景用它直接写入长期 token，跳过配对码握手。
+    func saveCredential(_ token: String, for rawEndpoint: String) throws {
+        guard let url = URL(string: rawEndpoint) else { return }
+        try GatewayTokenStore.save(token, for: credentialURL(url))
+    }
+
     func connectForPairing(_ payload: GatewayPairingPayload) {
         isRecoveringFromBackground = false
         isManualPairingAttempt = true

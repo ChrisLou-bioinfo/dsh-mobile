@@ -264,6 +264,27 @@ struct WorkspaceView: View {
         VStack(alignment: .leading, spacing: 18) {
             workspaceCard.id("workspace-card")
             newSessionButton.id("workspace-new-session")
+            if !connectionIsReady {
+                Button {
+                    hosts.connectDemo()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                        Text("体验演示模式（无需配置）")
+                    }
+                    .appFont(.subheadline.weight(.medium))
+                    .foregroundStyle(DSHColor.ocean)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(DSHColor.ocean.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("连接内置演示环境，可直接浏览会话与对话界面")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -337,6 +358,14 @@ struct WorkspaceView: View {
                     .appFont(.system(size: 20, weight: .medium))
                     .frame(width: 24)
             }, action: { closeDrawer(); onSettings() })
+            drawerItem("演示模式", icon: {
+                Image(systemName: "sparkles")
+                    .appFont(.system(size: 20, weight: .medium))
+                    .frame(width: 24)
+            }, action: {
+                closeDrawer()
+                hosts.connectDemo()
+            })
             drawerItem("扫码连接", icon: {
                 Image(systemName: "qrcode.viewfinder")
                     .appFont(.system(size: 20, weight: .medium))

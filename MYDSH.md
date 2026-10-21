@@ -1,3 +1,6 @@
+> 本文件是**本分支作者的开发与部署记录**，包含作者自己的机器名、域名与设备 UDID 等示例信息。
+> 其中的 `../lab/`、`../dsh-gateway` 等路径是作者本地目录，普通 clone 里可能不存在，不影响构建。
+
 # Mydsh — 自用 iOS 客户端（基于 Whaleness / dsh-mobile）
 
 本仓库是 [Clarklevis1995/dsh-mobile](https://github.com/Clarklevis1995/dsh-mobile) 的本地定制分支，

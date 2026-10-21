@@ -23,10 +23,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-KEY_ID=662DG54QFM
-ISSUER=83c32535-8b3a-405e-a631-e80968b96c25
-TEAM=239B5T5LP3
-BUNDLE=com.jiachenglou.dshmobile
+# 以下标识均可通过环境变量覆盖，方便 fork 后用你自己的账号打包。
+KEY_ID="${MYDSH_KEY_ID:-662DG54QFM}"
+ISSUER="${MYDSH_ISSUER:-83c32535-8b3a-405e-a631-e80968b96c25}"
+TEAM="${MYDSH_TEAM:-239B5T5LP3}"
+BUNDLE="${MYDSH_BUNDLE:-com.jiachenglou.dshmobile}"
 ARCHIVE=build/Mydsh.xcarchive
 EXPORT=build/export
 IPA=$(ls "$EXPORT"/*.ipa 2>/dev/null | head -1)

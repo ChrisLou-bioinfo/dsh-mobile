@@ -5,9 +5,9 @@ import Combine
 /// App Store 审核用演示环境：内置一个只读演示网关的长期 token，
 /// 审核员无需配对即可看到真实界面与功能（Apple 明确接受 demonstration mode）。
 enum DemoGateway {
-    static let endpoint = "wss://mydsh.chrisapp.xyz:50006/dsh/ws/mobile"
-    static let token = "pNI1L2JcQ0mJ5vC-ajxwlPh83cYV0fEggM9xESAs2fM"
-    static let gatewayId = "61520177-8163-4e2e-babe-71c205cfd9a4"
+    /// 专用演示实例：独立 DSH_HOME、关闭鉴权，因此**无需在包里内置任何 token**。
+    /// 里面只有演示会话，不含作者的真实数据。
+    static let endpoint = "wss://mydsh.chrisapp.xyz:50006/demo/ws/mobile"
     static let name = "Mydsh 演示环境"
     static let profileID = "d0000000-0000-4000-8000-000000000001"
 }
@@ -201,12 +201,11 @@ final class MultiGatewayStore: ObservableObject {
         var profile = profiles.first { $0.id == DemoGateway.profileID }
             ?? GatewayProfile(
                 id: DemoGateway.profileID,
-                gatewayId: DemoGateway.gatewayId,
+                gatewayId: nil,
                 gatewayName: DemoGateway.name,
                 endpoints: endpoints,
                 preferredEndpoint: DemoGateway.endpoint
             )
-        profile.gatewayId = DemoGateway.gatewayId
         profile.gatewayName = DemoGateway.name
         profile.endpoints = endpoints
         profile.preferredEndpoint = DemoGateway.endpoint
@@ -214,12 +213,6 @@ final class MultiGatewayStore: ObservableObject {
         persist()
 
         let store = makeStore(profile)
-        do {
-            try store.gateway.saveCredential(DemoGateway.token, for: DemoGateway.endpoint)
-        } catch {
-            self.error = error.localizedDescription
-            return
-        }
         activeStore.deactivateGateway()
         activeID = profile.id
         activeStore = store

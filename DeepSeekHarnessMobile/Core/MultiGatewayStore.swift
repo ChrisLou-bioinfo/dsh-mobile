@@ -9,7 +9,7 @@ enum DemoGateway {
     static let token = "pNI1L2JcQ0mJ5vC-ajxwlPh83cYV0fEggM9xESAs2fM"
     static let gatewayId = "61520177-8163-4e2e-babe-71c205cfd9a4"
     static let name = "Mydsh 演示环境"
-    static let profileID = "demo0000-0000-4000-8000-000000000001"
+    static let profileID = "d0000000-0000-4000-8000-000000000001"
 }
 
 @MainActor
@@ -32,11 +32,17 @@ final class MultiGatewayStore: ObservableObject {
         activeStore = AppStore(preferences: UserDefaultsAppPreferences(userDefaults: defaults, gatewayID: "unpaired"), gatewayLocalID: "unpaired")
         do {
             if let data = defaults.data(forKey: Self.profilesKey) {
-                profiles = try JSONDecoder().decode([GatewayProfile].self, from: data)
-                guard Set(profiles.map(\.id)).count == profiles.count,
-                      profiles.allSatisfy({ GatewayIdentity.isValid($0.id) && !$0.endpoints.isEmpty && $0.endpoints.count <= 16 }) else {
-                    throw GatewayProfileError.address
+                let decoded = try JSONDecoder().decode([GatewayProfile].self, from: data)
+                // 容错：单条记录损坏（例如旧版本写入过非法 id）不应让所有主机一起失效，
+                // 否则用户会表现为"更新后连不上、配对全没了"。
+                var seenIDs = Set<String>()
+                profiles = decoded.filter { profile in
+                    GatewayIdentity.isValid(profile.id)
+                        && !profile.endpoints.isEmpty
+                        && profile.endpoints.count <= 16
+                        && seenIDs.insert(profile.id).inserted
                 }
+                if profiles.count != decoded.count { persist() }
             } else {
                 let legacy = UserDefaultsAppPreferences(userDefaults: defaults)
                 if defaults.string(forKey: "gateway.endpoint") != nil {

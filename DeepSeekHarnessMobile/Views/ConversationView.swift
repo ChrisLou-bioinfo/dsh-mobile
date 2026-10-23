@@ -412,6 +412,9 @@ struct ConversationView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .trailing) {
+            canvasHandle
+        }
         .ignoresSafeArea(.container, edges: .bottom)
         .background {
             WindowBottomSafeAreaReader(bottomInset: $bottomSafeAreaInset, windowHeight: $voiceWindowHeight)
@@ -1125,6 +1128,34 @@ struct ConversationView: View {
     /// recursed through `_checkGenericRequirements` until the stack guard hit.
     /// Boxing keeps each child's type out of the row's mangled name.
     @ViewBuilder
+    /// 右边缘的 Canvas 把手：点击进入产物预览，也提示可以横向滑入。
+    private var canvasHandle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                activeView = activeView == 0 ? 1 : 0
+            }
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: activeView == 0 ? "square.on.square.dashed" : "chevron.left")
+                    .appFont(.system(size: 12, weight: .semibold))
+                Text(activeView == 0 ? "CANVAS" : "")
+                    .appFont(.system(size: 8, weight: .semibold))
+                    .rotationEffect(.degrees(90))
+                    .fixedSize()
+            }
+            .foregroundStyle(DSHColor.mist)
+            .frame(width: 20, height: 64)
+            .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(DSHColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 2)
+        .accessibilityLabel(activeView == 0 ? "打开 Canvas 产物预览" : "返回对话")
+    }
+
     private var composerButtonsRow: some View {
         HStack(spacing: 7) {
             AnyView(composerAttachmentButton)
@@ -2742,13 +2773,22 @@ private struct PersistentSessionPager<ConversationPage: View, TrajectoryPage: Vi
                     return
                 }
                 if dragAxis == nil {
+                    // 进入 Canvas 只认「右侧边缘起手」的横滑：
+                    // 正文里长按选字时手指多在中部，不会被误判成翻页。
+                    let enteringCanvasFromEdge = selection == 0
+                        && value.startLocation.x >= pageWidth * 0.72
+                        && value.translation.width < 0
+                    let leavingCanvas = selection == 1
                     let isSystemBackGesture = value.startLocation.x <= 28
                         && value.translation.width > 0
                     let globalStart = CGPoint(
                         x: pagerFrame.minX + value.startLocation.x,
                         y: pagerFrame.minY + value.startLocation.y
                     )
-                    if NestedHorizontalScrollResolver.containsScrollableView(at: globalStart) {
+                    if !enteringCanvasFromEdge && !leavingCanvas {
+                        // 中部起手的横向手势交给正文（选择、滚动）处理。
+                        dragAxis = .nestedHorizontalScroll
+                    } else if NestedHorizontalScrollResolver.containsScrollableView(at: globalStart) {
                         // Code blocks own the complete touch sequence. The
                         // pager must not reinterpret the same pan as a tab
                         // transition when the finger reaches the cell edge.

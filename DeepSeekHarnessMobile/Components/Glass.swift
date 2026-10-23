@@ -10,11 +10,16 @@ struct GlassSurface: ViewModifier {
     func body(content: Content) -> some View {
         // Terminal surfaces: flat fill + 1px hairline border, tiny radius.
         let r = min(radius, 6)
-        let fill = tint?.opacity(clear ? 0.10 : 0.55)
         content
+            // 先铺不透明底色，再叠加半透明 tint：
+            // 否则面板会透出背后的内容（命令面板、提问卡片曾出现文字重叠）。
             .background {
                 RoundedRectangle(cornerRadius: r, style: .continuous)
-                    .fill(fill.map { AnyShapeStyle($0) } ?? AnyShapeStyle(DSHColor.panelFill))
+                    .fill(AnyShapeStyle(DSHColor.panelFill))
+            }
+            .background {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .fill(AnyShapeStyle((tint ?? Color.clear).opacity(clear ? 0.10 : 0.55)))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: r, style: .continuous)

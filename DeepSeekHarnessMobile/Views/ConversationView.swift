@@ -399,7 +399,7 @@ struct ConversationView: View {
         ZStack {
             conversationBackground.ignoresSafeArea()
             VStack(spacing: 0) {
-                PersistentSessionPager(selection: $activeView) {
+                PersistentSessionPager(selection: $activeView, isSwipeEnabled: !composerIsFocused) {
                     chat
                 } trajectory: {
                     // 第二页改为 Canvas：本会话生成文件的预览面板。
@@ -2673,6 +2673,9 @@ private struct TaskGoalPanels: View {
 
 private struct PersistentSessionPager<ConversationPage: View, TrajectoryPage: View>: View {
     @Binding var selection: Int
+    /// 输入框获得焦点（或正在选择文字）时关闭页滑动，
+    /// 否则长按选字后左右拖会连带把整页滑走。
+    var isSwipeEnabled: Bool = true
     private let conversationPage: ConversationPage
     private let trajectoryPage: TrajectoryPage
     @State private var dragTranslation: CGFloat = 0
@@ -2681,10 +2684,12 @@ private struct PersistentSessionPager<ConversationPage: View, TrajectoryPage: Vi
 
     init(
         selection: Binding<Int>,
+        isSwipeEnabled: Bool = true,
         @ViewBuilder conversation: () -> ConversationPage,
         @ViewBuilder trajectory: () -> TrajectoryPage
     ) {
         _selection = selection
+        self.isSwipeEnabled = isSwipeEnabled
         conversationPage = conversation()
         trajectoryPage = trajectory()
     }
@@ -2709,7 +2714,8 @@ private struct PersistentSessionPager<ConversationPage: View, TrajectoryPage: Vi
                 pageGesture(
                     pageWidth: pageWidth,
                     pagerFrame: geometry.frame(in: .global)
-                )
+                ),
+                isEnabled: isSwipeEnabled
             )
         }
         .clipped()
@@ -2723,9 +2729,18 @@ private struct PersistentSessionPager<ConversationPage: View, TrajectoryPage: Vi
             : dragTranslation
     }
 
-    private func pageGesture(pageWidth: CGFloat, pagerFrame: CGRect) -> some Gesture {
+    private func pageGesture(pageWidth: CGFloat, pagerFrame: CGRect, isEnabled: Bool = true) -> some Gesture {
         DragGesture(minimumDistance: 12, coordinateSpace: .local)
             .onChanged { value in
+                guard isEnabled else {
+                    // 输入/选字期间不接管手势，避免整页跟着滑。
+                    if dragTranslation != 0 {
+                        dragTranslation = 0
+                        dragAxis = nil
+                        isPageSwipeActive = false
+                    }
+                    return
+                }
                 if dragAxis == nil {
                     let isSystemBackGesture = value.startLocation.x <= 28
                         && value.translation.width > 0
@@ -4543,6 +4558,8 @@ struct MarkdownContent: View {
             .markdownCodeSyntaxHighlighter(DSHCodeSyntaxHighlighter())
             // MarkdownUI 会自行应用 Dynamic Type。主题已合并系统与应用倍率，避免重复缩放。
             .dynamicTypeSize(.large)
+            // 允许长按选中并复制对话内容。
+            .textSelection(.enabled)
     }
 
     private var codeDestinations: [String: String] {

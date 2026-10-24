@@ -1135,20 +1135,22 @@ struct ConversationView: View {
                 activeView = activeView == 0 ? 1 : 0
             }
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Image(systemName: activeView == 0 ? "square.on.square.dashed" : "chevron.left")
                     .appFont(.system(size: 12, weight: .semibold))
                 if activeView == 0 {
-                    // 竖排字母，避免旋转文本与图标叠在一起。
-                    VStack(spacing: 1) {
-                        ForEach(Array("CANVAS".enumerated()), id: \.offset) { _, ch in
-                            Text(String(ch)).appFont(.system(size: 7, weight: .semibold))
-                        }
-                    }
+                    // 逆时针旋转 90°：文字从下往上读；外面按旋转后的实际尺寸留位，
+                    // 避免像上一版那样压到图标上。
+                    Text("CANVAS")
+                        .appFont(.system(size: 8, weight: .semibold))
+                        .tracking(1)
+                        .fixedSize()
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 12, height: 58)
                 }
             }
             .foregroundStyle(DSHColor.mist)
-            .frame(width: 22, height: activeView == 0 ? 76 : 40)
+            .frame(width: 24, height: activeView == 0 ? 92 : 40)
             .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)

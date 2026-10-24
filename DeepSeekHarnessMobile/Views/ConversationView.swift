@@ -1135,16 +1135,20 @@ struct ConversationView: View {
                 activeView = activeView == 0 ? 1 : 0
             }
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 6) {
                 Image(systemName: activeView == 0 ? "square.on.square.dashed" : "chevron.left")
                     .appFont(.system(size: 12, weight: .semibold))
-                Text(activeView == 0 ? "CANVAS" : "")
-                    .appFont(.system(size: 8, weight: .semibold))
-                    .rotationEffect(.degrees(90))
-                    .fixedSize()
+                if activeView == 0 {
+                    // 竖排字母，避免旋转文本与图标叠在一起。
+                    VStack(spacing: 1) {
+                        ForEach(Array("CANVAS".enumerated()), id: \.offset) { _, ch in
+                            Text(String(ch)).appFont(.system(size: 7, weight: .semibold))
+                        }
+                    }
+                }
             }
             .foregroundStyle(DSHColor.mist)
-            .frame(width: 20, height: 64)
+            .frame(width: 22, height: activeView == 0 ? 76 : 40)
             .background(DSHColor.panelFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1240,30 +1244,6 @@ struct ConversationView: View {
             maxSelectionCount: max(1, 20 - pendingImages.count),
             matching: .images
         )
-    }
-
-    private var attachmentEntryDisabled: Bool {
-        isImportingImages || isImportingFiles
-            || (!store.supportsImages && !store.supportsFiles)
-            || (pendingImages.count >= 20 && pendingFiles.count >= 8)
-    }
-
-    private var composerFileButton: some View {
-        Button { showsFileImporter = true } label: {
-            Group {
-                if isImportingFiles {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "paperclip")
-                        .appFont(.system(size: 16, weight: .semibold))
-                }
-            }
-            .frame(width: 32, height: 32)
-            .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!store.supportsFiles || pendingFiles.count >= 8 || isImportingFiles)
-        .accessibilityLabel(store.supportsFiles ? String(localized: "添加文件") : String(localized: "当前网关不支持文件"))
         .fileImporter(
             isPresented: $showsFileImporter,
             allowedContentTypes: [.item],
@@ -1271,6 +1251,12 @@ struct ConversationView: View {
         ) { result in
             Task { await importFiles(result) }
         }
+    }
+
+    private var attachmentEntryDisabled: Bool {
+        isImportingImages || isImportingFiles
+            || (!store.supportsImages && !store.supportsFiles)
+            || (pendingImages.count >= 20 && pendingFiles.count >= 8)
     }
 
     private var pendingFileStrip: some View {
